@@ -1,0 +1,32 @@
+{
+  "name": "osrs-ge-flip-finder",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "shared",
+    "server",
+    "client"
+  ],
+  "scripts": {
+    "dev": "npm run build -w shared && concurrently -n shared,server,client -c blue,green,magenta \"npm:dev -w shared\" \"npm:dev -w server\" \"npm:dev -w client\"",
+    "build": "npm run build -w shared && npm run build -w server && npm run build -w client",
+    "start": "node server/dist/index.js",
+    "test": "npm test --workspaces --if-present",
+    "typecheck": "npm run build -w shared && npm run typecheck -w server && npm run typecheck -w client",
+    "lint": "eslint .",
+    "format": "prettier --write ."
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.9.0",
+    "concurrently": "^9.0.0",
+    "eslint": "^9.9.0",
+    "eslint-config-prettier": "^9.1.0",
+    "prettier": "^3.3.3",
+    "typescript": "^5.5.4",
+    "typescript-eslint": "^8.2.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
