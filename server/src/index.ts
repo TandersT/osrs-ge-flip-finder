@@ -2,12 +2,11 @@ import Fastify from 'fastify';
 import fastifyStatic from '@fastify/static';
 import path from 'node:path';
 import fs from 'node:fs';
-import { SHARED_OK } from '@osrs-flip/shared';
 import { config, repoRoot } from './config.js';
 
 const app = Fastify({ logger: true });
 
-app.get('/api/health', async () => ({ ok: true, shared: SHARED_OK }));
+app.get('/api/health', async () => ({ ok: true }));
 
 // In production the same process serves the built SPA
 const clientDist = path.join(repoRoot, 'client', 'dist');
