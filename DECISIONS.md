@@ -59,3 +59,16 @@ Newest entries at the bottom. Each Build Order step gets a `[step N]` marker whe
   client-computed flag using `staleAfterSeconds`.
 - Wiki fetches carry a 15s AbortSignal timeout so a hung upstream can't pile up requests
   behind the single-flight lock.
+
+## Flip Finder + item detail (Build Order steps 4–5) — [steps 4, 5 complete]
+
+- **volumePer4h = 1h volume × 4** (more current than dailyVolume/6; both shown as columns).
+- **"Data age" column shows the OLDER of the two price timestamps** (worst case), and the
+  stale flag keys off the same number vs `STALE_AFTER_SECONDS`.
+- **Price/volume chart is two stacked panels** (price lines above, volume bars below, synced
+  tooltips) rather than one dual-axis chart — finance convention, and dual y-scales are a
+  known chart anti-pattern. Series colours (#c98500 high / #3987e5 low) were validated for
+  colour-blind separation + contrast on the dark panel background.
+- Item detail's long-horizon stats always use the 24h timeseries (separate cached query)
+  regardless of the chart's selected timestep.
+- High-alch panel prices nature runes live from the same /api/items payload (id 561).
