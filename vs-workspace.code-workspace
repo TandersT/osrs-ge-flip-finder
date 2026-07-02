@@ -1,0 +1,209 @@
+{
+    "folders": [
+        {
+            "name": "Client/Web",
+            "path": "client"
+        },
+        {
+            "name": "Server/FlipFinder",
+            "path": "server"
+        },
+        {
+            "name": "Shared",
+            "path": "shared"
+        },
+        {
+            "name": "Scripts",
+            "path": "scripts"
+        }
+    ],
+    "settings": {
+        "workbench.colorCustomizations": {
+            "statusBar.debuggingBackground": "#8B0000",
+            "statusBar.debuggingForeground": "#ffffff"
+        },
+        "files.watcherExclude": {
+            "**/.git/objects/**": true,
+            "**/.git/subtree-cache/**": true,
+            "**/node_modules/**": true,
+            "**/dist/**": true
+        },
+        "files.exclude": {
+            "**/dist": true
+        },
+        "search.exclude": {
+            "**/dist": true,
+            "**/node_modules": true
+        }
+    },
+    "tasks": {
+        "version": "2.0.0",
+        "tasks": [
+            {
+                "label": "setup",
+                "type": "shell",
+                "command": "npm install",
+                "options": {
+                    "cwd": "${workspaceFolder:Shared}/.."
+                },
+                "problemMatcher": [],
+                "detail": "Install all workspace dependencies"
+            },
+            {
+                "label": "build:shared",
+                "type": "shell",
+                "command": "npm run build -w shared",
+                "options": {
+                    "cwd": "${workspaceFolder:Shared}/.."
+                },
+                "problemMatcher": ["$tsc"],
+                "detail": "Compile the shared domain package (server/client import its dist)"
+            },
+            {
+                "label": "build",
+                "type": "shell",
+                "command": "npm run build",
+                "options": {
+                    "cwd": "${workspaceFolder:Shared}/.."
+                },
+                "problemMatcher": ["$tsc"],
+                "detail": "Build shared, server and client for production"
+            },
+            {
+                "label": "test",
+                "type": "shell",
+                "command": "npm test",
+                "options": {
+                    "cwd": "${workspaceFolder:Shared}/.."
+                },
+                "problemMatcher": [],
+                "detail": "Vitest across all workspaces"
+            },
+            {
+                "label": "lint",
+                "type": "shell",
+                "command": "npm run lint",
+                "options": {
+                    "cwd": "${workspaceFolder:Shared}/.."
+                },
+                "problemMatcher": ["$eslint-stylish"],
+                "detail": "ESLint over the whole repo"
+            },
+            {
+                "label": "typecheck",
+                "type": "shell",
+                "command": "npm run typecheck",
+                "options": {
+                    "cwd": "${workspaceFolder:Shared}/.."
+                },
+                "problemMatcher": ["$tsc"],
+                "detail": "tsc --noEmit across workspaces"
+            },
+            {
+                "label": "watch",
+                "type": "shell",
+                "command": "npm run dev",
+                "options": {
+                    "cwd": "${workspaceFolder:Shared}/.."
+                },
+                "problemMatcher": [],
+                "isBackground": true,
+                "detail": "shared (tsc -w) + server (tsx watch, :3000) + client (Vite, :5173)"
+            },
+            {
+                "label": "start:prod",
+                "type": "shell",
+                "command": "npm start",
+                "options": {
+                    "cwd": "${workspaceFolder:Shared}/.."
+                },
+                "problemMatcher": [],
+                "isBackground": true,
+                "detail": "Serve the production build (app + API on :3000); run build first"
+            },
+            {
+                "label": "launch:prep",
+                "dependsOn": [
+                    "build:shared"
+                ],
+                "problemMatcher": [],
+                "detail": "Ensure shared/dist exists before launching server or client"
+            }
+        ]
+    },
+    "launch": {
+        "version": "0.2.0",
+        "configurations": [
+            {
+                "name": "Fastify server (tsx watch)",
+                "type": "node",
+                "request": "launch",
+                "preLaunchTask": "launch:prep",
+                "runtimeExecutable": "npx",
+                "runtimeArgs": [
+                    "tsx",
+                    "watch",
+                    "src/index.ts"
+                ],
+                "cwd": "${workspaceFolder:Server/FlipFinder}",
+                "console": "integratedTerminal",
+                "autoAttachChildProcesses": true
+            },
+            {
+                "name": "Vite dev",
+                "type": "node",
+                "request": "launch",
+                "runtimeExecutable": "npm",
+                "runtimeArgs": [
+                    "run",
+                    "dev"
+                ],
+                "cwd": "${workspaceFolder:Client/Web}",
+                "console": "integratedTerminal",
+                "serverReadyAction": {
+                    "action": "openExternally",
+                    "pattern": "Local:\\s+http://localhost:([0-9]+)",
+                    "uriFormat": "http://localhost:%s"
+                }
+            },
+            {
+                "name": "Vite dev (no browser)",
+                "type": "node",
+                "request": "launch",
+                "runtimeExecutable": "npm",
+                "runtimeArgs": [
+                    "run",
+                    "dev"
+                ],
+                "cwd": "${workspaceFolder:Client/Web}",
+                "console": "integratedTerminal"
+            },
+            {
+                "name": "Debug Chrome",
+                "type": "chrome",
+                "request": "launch",
+                "url": "http://localhost:5173",
+                "webRoot": "${workspaceFolder:Client/Web}/src"
+            }
+        ],
+        "compounds": [
+            {
+                "name": "🚀 Launch Web",
+                "configurations": [
+                    "Fastify server (tsx watch)",
+                    "Vite dev"
+                ],
+                "stopAll": true
+            },
+            {
+                "name": "🔍 Debug Web (Chrome)",
+                "configurations": [
+                    "Fastify server (tsx watch)",
+                    "Vite dev (no browser)",
+                    "Debug Chrome"
+                ],
+                "stopAll": true
+            }
+        ]
+    }
+}
