@@ -1,0 +1,412 @@
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
+import {
+  CartesianGrid,
+  Line,
+  LineChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from 'recharts';
+import type { ItemSnapshot } from '@osrs-flip/shared';
+import { computeFlip, formatGpCompact, formatGpFull, geTax } from '@osrs-flip/shared';
+import { useAppConfig, useItems } from '../lib/api';
+import { nameMatches } from '../lib/rows';
+import { cumulativeProfit, computeStats, useFlipLog, type FlipLogEntry } from '../lib/fliplog';
+import { GpText } from '../components/GpText';
+import { ItemIcon } from '../components/ItemIcon';
+
+const LINE_COLOR = '#c98500'; // CVD-validated on the dark panel surface
+const GRID_COLOR = '#3d362a';
+const AXIS_TEXT = '#a89f8c';
+
+function StatTile({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="flex flex-col gap-1 rounded border border-panel-border bg-panel px-4 py-3">
+      <span className="text-xs uppercase tracking-wide opacity-60">{label}</span>
+      <span className="text-lg font-semibold tabular-nums">{children}</span>
+    </div>
+  );
+}
+
+function ItemPicker({
+  items,
+  selected,
+  onSelect,
+}: {
+  items: ItemSnapshot[];
+  selected: ItemSnapshot | null;
+  onSelect: (item: ItemSnapshot | null) => void;
+}) {
+  const [query, setQuery] = useState('');
+  const [open, setOpen] = useState(false);
+  const wrapRef = useRef<HTMLDivElement>(null);
+
+  const matches = useMemo(() => {
+    if (query.trim() === '') return [];
+    return items.filter((i) => nameMatches(i.name, query)).slice(0, 8);
+  }, [items, query]);
+
+  useEffect(() => {
+    const close = (e: MouseEvent) => {
+      if (!wrapRef.current?.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', close);
+    return () => document.removeEventListener('mousedown', close);
+  }, []);
+
+  return (
+    <div ref={wrapRef} className="relative">
+      <label className="flex flex-col gap-1 text-xs">
+        <span className="uppercase tracking-wide opacity-60">Item</span>
+        {selected ? (
+          <button
+            onClick={() => {
+              onSelect(null);
+              setQuery('');
+            }}
+            className="flex w-56 items-center gap-2 rounded border border-gold/50 bg-ink px-2 py-1.5 text-left text-sm"
+            title="Click to change item"
+          >
+            <ItemIcon icon={selected.icon} name={selected.name} size={20} />
+            <span className="truncate">{selected.name}</span>
+            <span className="ml-auto opacity-40">✕</span>
+          </button>
+        ) : (
+          <input
+            type="text"
+            value={query}
+            placeholder="Search an item…"
+            onChange={(e) => {
+              setQuery(e.target.value);
+              setOpen(true);
+            }}
+            onFocus={() => setOpen(true)}
+            className="w-56 rounded border border-panel-border bg-ink px-2 py-1.5 text-sm text-parchment outline-none focus:border-gold"
+          />
+        )}
+      </label>
+      {open && matches.length > 0 && !selected && (
+        <ul className="absolute z-20 mt-1 w-64 overflow-hidden rounded border border-panel-border bg-panel shadow-xl">
+          {matches.map((item) => (
+            <li key={item.id}>
+              <button
+                onClick={() => {
+                  onSelect(item);
+                  setOpen(false);
+                }}
+                className="flex w-full items-center gap-2 px-2 py-1.5 text-left text-sm hover:bg-panel-light"
+              >
+                <ItemIcon icon={item.icon} name={item.name} size={20} />
+                <span className="truncate">{item.name}</span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+function NumberField({
+  label,
+  value,
+  onChange,
+  width = 'w-28',
+}: {
+  label: string;
+  value: number | '';
+  onChange: (v: number | '') => void;
+  width?: string;
+}) {
+  return (
+    <label className="flex flex-col gap-1 text-xs">
+      <span className="uppercase tracking-wide opacity-60">{label}</span>
+      <input
+        type="number"
+        min={0}
+        value={value}
+        onChange={(e) => onChange(e.target.value === '' ? '' : Math.max(0, Number(e.target.value)))}
+        className={`${width} rounded border border-panel-border bg-ink px-2 py-1.5 text-sm text-parchment outline-none focus:border-gold`}
+      />
+    </label>
+  );
+}
+
+function ChartTooltip({
+  active,
+  payload,
+}: {
+  active?: boolean;
+  payload?: { payload?: { n: number; total: number; entry: FlipLogEntry } }[];
+}) {
+  const point = payload?.[0]?.payload;
+  if (!active || !point) return null;
+  return (
+    <div className="rounded border border-panel-border bg-ink/95 px-3 py-2 text-xs shadow-lg">
+      <div className="font-medium text-parchment">
+        #{point.n} · {point.entry.itemName}
+      </div>
+      <div className="opacity-70">
+        this flip: {formatGpFull(point.entry.profit)} · total: {formatGpFull(point.total)}
+      </div>
+    </div>
+  );
+}
+
+export default function FlipLogPage() {
+  const config = useAppConfig();
+  const { data } = useItems(config.clientRefreshSeconds);
+  const { entries, add, remove } = useFlipLog();
+  const [params] = useSearchParams();
+
+  const [selected, setSelected] = useState<ItemSnapshot | null>(null);
+  const [qty, setQty] = useState<number | ''>(1);
+  const [buy, setBuy] = useState<number | ''>('');
+  const [sell, setSell] = useState<number | ''>('');
+
+  // /log?item=4151 preselects once (arriving from an item page's "Log this flip")
+  const appliedParamRef = useRef(false);
+  useEffect(() => {
+    const id = Number(params.get('item'));
+    if (appliedParamRef.current || !data || !Number.isInteger(id) || id <= 0) return;
+    const item = data.items.find((i) => i.id === id);
+    if (item) {
+      appliedParamRef.current = true;
+      selectItem(item);
+    }
+  });
+
+  function selectItem(item: ItemSnapshot | null) {
+    setSelected(item);
+    if (!item) return;
+    const flip = computeFlip(
+      {
+        low: item.low,
+        high: item.high,
+        isExempt: item.taxExempt,
+        buyLimit: item.limit,
+        volumePer4h: null,
+      },
+      config,
+    );
+    if (flip) {
+      setBuy(flip.buyAt);
+      setSell(flip.sellAt);
+    }
+  }
+
+  const preview = useMemo(() => {
+    if (!selected || qty === '' || buy === '' || sell === '' || qty <= 0) return null;
+    const tax = geTax(selected.taxExempt, sell);
+    return { tax, profit: (sell - buy - tax) * qty };
+  }, [selected, qty, buy, sell]);
+
+  const stats = useMemo(() => computeStats(entries), [entries]);
+  const series = useMemo(() => cumulativeProfit(entries), [entries]);
+
+  const submit = () => {
+    if (!selected || preview === null || qty === '' || buy === '' || sell === '') return;
+    add({
+      itemId: selected.id,
+      itemName: selected.name,
+      icon: selected.icon,
+      taxExempt: selected.taxExempt,
+      qty,
+      buyPrice: buy,
+      sellPrice: sell,
+    });
+    setSelected(null);
+    setQty(1);
+    setBuy('');
+    setSell('');
+  };
+
+  const exportCsv = async () => {
+    const { toCsv } = await import('../lib/fliplog');
+    const blob = new Blob([toCsv(entries)], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'flip-log.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const dateFmt = new Intl.DateTimeFormat('en-GB', {
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+
+  return (
+    <div className="flex flex-col gap-4">
+      <header>
+        <h1 className="text-2xl font-bold text-gold">Flip Log</h1>
+        <p className="mt-1 max-w-2xl text-sm opacity-70">
+          Record the flips you actually make and watch your bank grow. Stored in this browser
+          only — nothing leaves your machine.
+        </p>
+      </header>
+
+      <section className="flex flex-wrap items-end gap-x-5 gap-y-3 rounded border border-panel-border bg-panel p-4">
+        <ItemPicker items={data?.items ?? []} selected={selected} onSelect={selectItem} />
+        <NumberField label="Quantity" value={qty} onChange={setQty} width="w-24" />
+        <NumberField label="Bought at (each)" value={buy} onChange={setBuy} />
+        <NumberField label="Sold at (each)" value={sell} onChange={setSell} />
+        <div className="flex flex-col gap-1 pb-0.5 text-xs">
+          <span className="uppercase tracking-wide opacity-60">Result</span>
+          {preview ? (
+            <span className="text-sm">
+              tax {formatGpCompact(preview.tax)}/ea → <GpText amount={preview.profit} signed />
+            </span>
+          ) : (
+            <span className="text-sm opacity-40">pick an item…</span>
+          )}
+        </div>
+        <button
+          onClick={submit}
+          disabled={preview === null}
+          className="rounded bg-gold px-4 py-1.5 text-sm font-semibold text-ink enabled:hover:brightness-110 disabled:opacity-30"
+        >
+          Log flip
+        </button>
+        <span className="pb-1 text-xs opacity-50">
+          Prices pre-fill from live data when you pick an item — adjust to what you really paid.
+        </span>
+      </section>
+
+      {entries.length > 0 && (
+        <>
+          <section className="grid gap-3 sm:grid-cols-4">
+            <StatTile label="Total profit"><GpText amount={stats.totalProfit} signed /></StatTile>
+            <StatTile label="Flips logged">{stats.flips.toLocaleString('en-US')}</StatTile>
+            <StatTile label="Win rate">
+              {stats.winRate === null ? '—' : `${Math.round(stats.winRate * 100)}%`}
+            </StatTile>
+            <StatTile label="Best flip">
+              {stats.best ? (
+                <span className="flex items-center gap-2 text-sm">
+                  <ItemIcon icon={stats.best.icon} name={stats.best.itemName} size={20} />
+                  <GpText amount={stats.best.profit} signed />
+                </span>
+              ) : (
+                '—'
+              )}
+            </StatTile>
+          </section>
+
+          {series.length >= 2 && (
+            <section className="rounded border border-panel-border bg-panel p-4">
+              <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-gold">
+                Bank growth (cumulative profit)
+              </h2>
+              <ResponsiveContainer width="100%" height={200}>
+                <LineChart data={series} margin={{ top: 8, right: 12, left: 8, bottom: 0 }}>
+                  <CartesianGrid stroke={GRID_COLOR} strokeDasharray="3 3" vertical={false} />
+                  <XAxis
+                    dataKey="n"
+                    stroke={GRID_COLOR}
+                    tick={{ fill: AXIS_TEXT, fontSize: 11 }}
+                    tickLine={false}
+                    label={{ value: 'flip #', fill: AXIS_TEXT, fontSize: 11, dy: 12 }}
+                    height={36}
+                  />
+                  <YAxis
+                    tickFormatter={(v: number) => formatGpCompact(v)}
+                    stroke={GRID_COLOR}
+                    tick={{ fill: AXIS_TEXT, fontSize: 11 }}
+                    tickLine={false}
+                    width={64}
+                  />
+                  <Tooltip
+                    content={<ChartTooltip />}
+                    cursor={{ stroke: AXIS_TEXT, strokeDasharray: '3 3' }}
+                    isAnimationActive={false}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="total"
+                    stroke={LINE_COLOR}
+                    strokeWidth={2}
+                    dot={false}
+                    isAnimationActive={false}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </section>
+          )}
+
+          <section className="overflow-auto rounded border border-panel-border bg-panel">
+            <div className="flex items-center justify-between px-3 py-2">
+              <span className="text-xs uppercase tracking-wide text-gold">History</span>
+              <button
+                onClick={exportCsv}
+                className="rounded border border-panel-border px-2 py-1 text-xs hover:border-gold hover:text-gold"
+              >
+                ⬇ Export CSV
+              </button>
+            </div>
+            <table className="w-full min-w-[760px] border-collapse text-sm">
+              <thead className="bg-panel-light">
+                <tr>
+                  {['When', 'Item', 'Qty', 'Bought', 'Sold', 'Tax/item', 'Profit', ''].map((h, i) => (
+                    <th
+                      key={i}
+                      className="whitespace-nowrap px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-gold"
+                    >
+                      {h}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {entries.map((e) => (
+                  <tr key={e.id} className="border-t border-panel-border/50">
+                    <td className="whitespace-nowrap px-3 py-1.5 opacity-60">
+                      {dateFmt.format(new Date(e.loggedAt * 1000))}
+                    </td>
+                    <td className="whitespace-nowrap px-3 py-1.5">
+                      <Link to={`/item/${e.itemId}`} className="flex items-center gap-2 hover:text-gold">
+                        <ItemIcon icon={e.icon} name={e.itemName} size={20} />
+                        {e.itemName}
+                      </Link>
+                    </td>
+                    <td className="px-3 py-1.5 tabular-nums">{e.qty.toLocaleString('en-US')}</td>
+                    <td className="px-3 py-1.5"><GpText amount={e.buyPrice} /></td>
+                    <td className="px-3 py-1.5"><GpText amount={e.sellPrice} /></td>
+                    <td className="px-3 py-1.5 tabular-nums opacity-70">{e.taxPerItem.toLocaleString('en-US')}</td>
+                    <td className="px-3 py-1.5"><GpText amount={e.profit} signed /></td>
+                    <td className="px-3 py-1.5">
+                      <button
+                        onClick={() => remove(e.id)}
+                        title="Delete entry"
+                        className="px-1 text-parchment/30 hover:text-osrs-red"
+                      >
+                        ✕
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </section>
+        </>
+      )}
+
+      {entries.length === 0 && (
+        <div className="flex flex-col items-center gap-3 rounded border border-panel-border bg-panel p-14 text-center">
+          <span className="text-4xl">📒</span>
+          <p className="opacity-70">No flips logged yet.</p>
+          <p className="max-w-md text-sm opacity-50">
+            Find a flip in the <Link to="/" className="text-gold underline">finder</Link> or the{' '}
+            <Link to="/starter" className="text-gold underline">Get Started guide</Link>, trade it
+            in-game, then log the real prices here to track your progress.
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}

@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import { TaxCalculator } from '../components/TaxCalculator';
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -89,6 +90,7 @@ export default function FaqPage() {
       </Section>
 
       <Section title="The GE tax">
+        <TaxCalculator />
         <Q q="How is the 2% tax computed exactly?">
           <p>
             The seller pays 2% of the sale price, <strong>per item</strong>, rounded{' '}

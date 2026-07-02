@@ -25,3 +25,20 @@ export function geTaxForQuantity(isExempt: boolean, sellPrice: number, quantity:
 export function isTaxExempt(itemId: number): boolean {
   return GE_TAX_EXEMPT_IDS.has(itemId);
 }
+
+/**
+ * Smallest sell price that doesn't lose money after tax, given what you paid.
+ * Exempt (or sub-50gp) sales have no tax, so break-even == the buy price.
+ */
+export function breakEvenSell(isExempt: boolean, buyPrice: number): number {
+  if (isExempt || buyPrice < GE_TAX_DIVISOR) return buyPrice;
+  // Above the cap the tax is a flat 5m.
+  if (buyPrice + GE_TAX_CAP >= 250_000_000) return buyPrice + GE_TAX_CAP;
+  // Need min S with S - floor(S/50) >= buy; S ≈ 50*buy/49, then fix floor jitter.
+  const estimate = Math.floor((GE_TAX_DIVISOR * buyPrice) / (GE_TAX_DIVISOR - 1));
+  for (let s = estimate - 2; s <= estimate + 3; s++) {
+    if (s - geTax(false, s) >= buyPrice) return s;
+  }
+  /* c8 ignore next */
+  return estimate + 3; // unreachable: the window always contains the fix point
+}

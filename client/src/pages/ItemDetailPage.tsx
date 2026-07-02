@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import type { Timestep } from '@osrs-flip/shared';
-import { computeFlip, formatGpFull } from '@osrs-flip/shared';
+import { breakEvenSell, computeFlip, formatGpFull } from '@osrs-flip/shared';
 import { useAppConfig, useItems, useTimeseries } from '../lib/api';
 import { computeItemStats, currentMid } from '../lib/itemStats';
 import { useWatchlist } from '../lib/watchlist';
@@ -198,10 +198,30 @@ export default function ItemDetailPage() {
             </StatRow>
             <StatRow label="Post-tax margin"><GpText amount={flip?.marginPerItem ?? null} signed /></StatRow>
             <StatRow label="ROI"><PctText value={flip ? flip.roi : null} /></StatRow>
+            <StatRow label="Break-even sell">
+              {flip ? (
+                <span
+                  className="tabular-nums opacity-80"
+                  title="Lowest sell price that doesn't lose money after tax, given the buy price above"
+                >
+                  {formatGpFull(breakEvenSell(item.taxExempt, flip.buyAt))}
+                </span>
+              ) : (
+                <span className="opacity-40">—</span>
+              )}
+            </StatRow>
             <StatRow label="Buy limit / 4h">
               {item.limit !== null ? item.limit.toLocaleString('en-US') : '—'}
             </StatRow>
             <StatRow label="Profit / 4h limit"><GpText amount={flip?.profitPer4h ?? null} signed /></StatRow>
+            <div className="pt-3">
+              <Link
+                to={`/log?item=${item.id}`}
+                className="block rounded bg-gold px-3 py-1.5 text-center text-sm font-semibold text-ink hover:brightness-110"
+              >
+                📒 Log this flip
+              </Link>
+            </div>
           </Panel>
 
           <Panel title="Statistics">

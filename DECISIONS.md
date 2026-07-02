@@ -152,6 +152,24 @@ Stefan asked for a friendlier, service-grade experience for new players:
 - Budget preset chips needed explicit short labels ("25k") — `formatGpCompact`
   intentionally shows full digits below 100k, which is wrong for chip labels.
 
+## Post-completion: service extras (2026-07-02)
+
+Creative-license pass ("anything else relevant, be creative"):
+
+- **Flip Log** (`/log`): record real flips, localStorage-only. Item autocomplete pre-fills
+  live buy/sell (adjustable), tax/profit preview before saving, stat tiles (total profit,
+  win rate, best flip), cumulative "bank growth" line chart, CSV export (chronological,
+  quote-escaped), per-entry delete. Item pages link in via "Log this flip" (`/log?item=id`,
+  applied once via ref so clearing the picker doesn't resurrect it). Entry names/icons are
+  denormalised so old logs survive item-list changes.
+- **`breakEvenSell(isExempt, buy)`** in shared: min sell price that doesn't lose money.
+  Closed-form estimate 50·buy/49 + a ±3 verify window (floor jitter), flat +5m above the
+  cap. Property-tested (no loss at S, loss at S−1). Shown on item detail and in the FAQ
+  calculator.
+- **Interactive tax calculator** at the top of the FAQ's tax section.
+- **`/` keyboard shortcut** focuses the finder search (skipped while typing).
+- **Meta/OG tags** + theme-color for link sharing.
+
 ## Post-completion: published to GitHub (2026-07-02)
 
 Stefan confirmed the intended account was `TandersT` (the `github-tanderst` SSH alias's

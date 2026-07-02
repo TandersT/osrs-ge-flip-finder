@@ -5,6 +5,7 @@ import LongTermPage from './pages/LongTermPage';
 import WatchlistPage from './pages/WatchlistPage';
 import StarterPage from './pages/StarterPage';
 import FaqPage from './pages/FaqPage';
+import FlipLogPage from './pages/FlipLogPage';
 
 function Tab({ to, label }: { to: string; label: string }) {
   return (
@@ -37,6 +38,7 @@ export default function App() {
           <Tab to="/starter" label="Get Started" />
           <Tab to="/longterm" label="Long-term" />
           <Tab to="/watchlist" label="Watchlist" />
+          <Tab to="/log" label="Flip Log" />
           <Tab to="/faq" label="FAQ" />
         </nav>
       </header>
@@ -47,6 +49,7 @@ export default function App() {
           <Route path="/item/:id" element={<ItemDetailPage />} />
           <Route path="/longterm" element={<LongTermPage />} />
           <Route path="/watchlist" element={<WatchlistPage />} />
+          <Route path="/log" element={<FlipLogPage />} />
           <Route path="/faq" element={<FaqPage />} />
         </Routes>
       </main>

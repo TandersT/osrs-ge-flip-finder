@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { geTax, geTaxForQuantity, isTaxExempt } from './tax.js';
+import { breakEvenSell, geTax, geTaxForQuantity, isTaxExempt } from './tax.js';
 import { GE_TAX_EXEMPT_ITEMS } from './taxExemptions.js';
 
 describe('geTax', () => {
@@ -53,6 +53,26 @@ describe('geTax', () => {
   it('avoids float error on awkward prices', () => {
     // 0.02 * 4_512_349 = 90246.98000000001 in floats; integer division must give 90246
     expect(geTax(false, 4_512_349)).toBe(90_246);
+  });
+});
+
+describe('breakEvenSell', () => {
+  it('equals the buy price when no tax applies', () => {
+    expect(breakEvenSell(true, 1_000_000)).toBe(1_000_000);
+    expect(breakEvenSell(false, 30)).toBe(30);
+  });
+
+  it('returns the minimal non-losing sell price', () => {
+    for (const buy of [50, 99, 100, 1_000, 4_512_349, 10_000_000]) {
+      const s = breakEvenSell(false, buy);
+      expect(s - geTax(false, s)).toBeGreaterThanOrEqual(buy); // no loss at s
+      expect(s - 1 - geTax(false, s - 1)).toBeLessThan(buy); // loss at s-1
+    }
+  });
+
+  it('is a flat +5m above the tax cap', () => {
+    expect(breakEvenSell(false, 250_000_000)).toBe(255_000_000);
+    expect(breakEvenSell(false, 245_000_000)).toBe(250_000_000);
   });
 });
 

@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import { formatGpCompact } from '@osrs-flip/shared';
 import { FILTER_PRESETS, EMPTY_FILTERS, type Filters, type Membership } from '../lib/rows';
 import { SliderInput } from './SliderInput';
@@ -38,6 +39,25 @@ export function FilterBar({
   const set = <K extends keyof Filters>(key: K, value: Filters[K]) =>
     onChange({ ...filters, [key]: value });
 
+  // "/" jumps to search from anywhere on the page (unless already typing)
+  const searchRef = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      const typing =
+        target instanceof HTMLInputElement ||
+        target instanceof HTMLTextAreaElement ||
+        target instanceof HTMLSelectElement;
+      if (e.key === '/' && !typing) {
+        e.preventDefault();
+        searchRef.current?.focus();
+        searchRef.current?.select();
+      }
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, []);
+
   return (
     <div className="flex flex-col gap-3 rounded border border-panel-border bg-panel p-3">
       <div className="flex flex-wrap items-center gap-2">
@@ -63,10 +83,12 @@ export function FilterBar({
         <label className="flex flex-col gap-1 text-xs">
           <span className="uppercase tracking-wide opacity-60">Search</span>
           <input
+            ref={searchRef}
             type="text"
             className="w-44 rounded border border-panel-border bg-ink px-2 py-1.5 text-sm text-parchment outline-none focus:border-gold"
             value={filters.search}
-            placeholder="Item name…"
+            placeholder="Item name…  ( / )"
+            title='Press "/" anywhere to search'
             onChange={(e) => set('search', e.target.value)}
           />
         </label>
