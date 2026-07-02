@@ -43,24 +43,11 @@ npm run build      # builds shared, server, client
 npm start          # one Node process serving app + API on PORT (default 3000)
 ```
 
-## Publishing to GitHub
+## Repository
 
-This repo was built on a machine whose `gh` CLI is authenticated as a work account
-(`aurocon-sta`) with no rights to the intended personal account, so it was **not**
-pushed automatically — full history is local. To publish it under the personal
-account, run from the repo root:
-
-```bash
-# with the gh CLI logged in to the right account:
-gh repo create tanders/osrs-ge-flip-finder --private --source=. --push
-
-# or manually, using this machine's SSH alias for the personal account
-# (matches how dotfiles/kvita are set up — adjust owner if it should be TandersT):
-git remote add origin git@github-tanderst:tanders/osrs-ge-flip-finder.git
-git push -u origin main
-```
-
-See `DECISIONS.md` ("Repo conventions") for the details.
+Published at [github.com/TandersT/osrs-ge-flip-finder](https://github.com/TandersT/osrs-ge-flip-finder)
+(private). On the dev machine the remote uses the `github-tanderst` SSH alias.
+See `DECISIONS.md` ("Repo conventions") for the history of how it got there.
 
 ## Architecture notes
 

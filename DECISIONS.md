@@ -130,3 +130,10 @@ Acceptance checks, all verified on 2026-07-02:
   `aurocon-sta`; `tanders` is a distinct user account, not an org) → executed the spec's
   local fallback: full history kept locally, exact publish commands in README
   ("Publishing to GitHub").
+
+## Post-completion: published to GitHub (2026-07-02)
+
+Stefan confirmed the intended account was `TandersT` (the `github-tanderst` SSH alias's
+account), created the empty private repo in the web UI, and the full history was pushed:
+`git@github-tanderst:TandersT/osrs-ge-flip-finder.git`, branch `main` tracking origin.
+The README fallback section was replaced with a plain repository pointer.
