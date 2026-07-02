@@ -131,6 +131,27 @@ Acceptance checks, all verified on 2026-07-02:
   local fallback: full history kept locally, exact publish commands in README
   ("Publishing to GitHub").
 
+## Post-completion: new-user UX pass (2026-07-02)
+
+Stefan asked for a friendlier, service-grade experience for new players:
+
+- **Sliders**: numeric filter fields became slider+input combos (`SliderInput`), log-scaled
+  for gp/volume (position → value via exp interpolation, snapped to 2 significant digits),
+  linear for ROI %. Dragging to the "off" end clears the filter (null); the tiny number
+  input stays for exact values. URL state unchanged.
+- **Get Started page** (`/starter`): budget-first view for small banks. Pure math in
+  `lib/starter.ts` (unit-tested): position size = min(floor(budget/buy), feasibleQty);
+  excludes stale/thin/unstable, <100 units/h, unaffordable and negative-margin items.
+  Includes a 3-step how-flipping-works explainer, small-bank tips, and five persona cards
+  (F2P, high-volume, big-ticket, passive investor, high-alch) linking to preset URLs.
+- **FAQ** (`/faq`): 22 questions as native `<details>` accordions covering tax mechanics,
+  offsets, capture-rate honesty, flags, z-score/dip/momentum, data source/etiquette,
+  storage/privacy. Deep links (`/faq#high-alch`) auto-open and scroll to the entry.
+- **Polish**: dismissible first-visit banner (localStorage), attribution footer on every
+  page, nav gains Get Started + FAQ. Client workspace gained vitest for the starter math.
+- Budget preset chips needed explicit short labels ("25k") — `formatGpCompact`
+  intentionally shows full digits below 100k, which is wrong for chip labels.
+
 ## Post-completion: published to GitHub (2026-07-02)
 
 Stefan confirmed the intended account was `TandersT` (the `github-tanderst` SSH alias's

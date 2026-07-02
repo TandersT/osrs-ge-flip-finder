@@ -7,6 +7,7 @@ import { filtersFromParams, paramsFromState, sortingFromParams } from '../lib/ur
 import { useWatchlist } from '../lib/watchlist';
 import { FilterBar } from '../components/FilterBar';
 import { FlipTable, rowMid, type TableContext } from '../components/FlipTable';
+import { NewUserBanner } from '../components/NewUserBanner';
 import { RefreshIndicator } from '../components/RefreshIndicator';
 import { TableSkeleton } from '../components/Skeleton';
 
@@ -69,6 +70,7 @@ export default function FlipFinderPage() {
 
   return (
     <div className="flex flex-col gap-3">
+      <NewUserBanner />
       {data.upstreamStale && (
         <div className="rounded border border-amber-700 bg-amber-950/50 px-3 py-2 text-sm text-amber-300">
           The wiki price API is unreachable — showing the last cached data.
