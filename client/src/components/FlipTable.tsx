@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useMemo, useRef } from 'react';
 import {
   createColumnHelper,
   flexRender,
@@ -227,9 +227,10 @@ export function FlipTable({ rows, context, sorting, onSortingChange }: FlipTable
   const navigate = useNavigate();
   const parentRef = useRef<HTMLDivElement>(null);
 
+  const columns = useMemo(() => buildColumns(context), [context]);
   const table = useReactTable({
     data: rows,
-    columns: buildColumns(context),
+    columns,
     state: { sorting },
     onSortingChange,
     getCoreRowModel: getCoreRowModel(),

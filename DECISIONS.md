@@ -110,3 +110,23 @@ Newest entries at the bottom. Each Build Order step gets a `[step N]` marker whe
 - Auto-refresh countdown ("updated Xs ago · next in Ys" + manual ⟳) driven by TanStack
   Query's dataUpdatedAt; interval comes from `/api/config`.
 - Loading skeletons for table/chart/panels; error states include a retry button.
+
+## Final verification (Build Order step 9) — [step 9 complete — ALL DONE]
+
+Acceptance checks, all verified on 2026-07-02:
+
+- `npm run build` / `npm test` (52 tests) / `npm run lint` / `npm run typecheck`: clean.
+- Tax function: edge tests pass (49/50 boundary, 250m cap boundary, per-item application,
+  exemptions, nulls) and match the wiki's worked examples (1,000 → 20; 10m → 200k).
+- Server boots; `/api/items` returns 4,589 live items; 8 back-to-back client requests →
+  `{mapping:1, latest:1, 1h:1, volumes:1}` upstream calls (single-flight + TTL confirmed).
+- Sorting 4.6k rows: 76–99ms warm (first-ever click ~120ms cold JIT); filtering ~48ms.
+  Columns array memoized after profiling showed table model rebuilds on every render.
+- Zero direct browser calls to prices.runescape.wiki in every Playwright session.
+- Outage drill: warmed cache through a local relay, killed the relay, waited past the 60s
+  TTL — `/api/items` kept serving all items with `upstreamStale: true` and the UI showed
+  the amber stale banner.
+- GitHub: `gh` on this machine cannot create repos under `tanders` (authenticated as
+  `aurocon-sta`; `tanders` is a distinct user account, not an org) → executed the spec's
+  local fallback: full history kept locally, exact publish commands in README
+  ("Publishing to GitHub").
