@@ -3,10 +3,11 @@ import fastifyStatic from '@fastify/static';
 import path from 'node:path';
 import fs from 'node:fs';
 import { config, repoRoot } from './config.js';
+import { registerApiRoutes } from './routes.js';
 
 const app = Fastify({ logger: true });
 
-app.get('/api/health', async () => ({ ok: true }));
+registerApiRoutes(app);
 
 // In production the same process serves the built SPA
 const clientDist = path.join(repoRoot, 'client', 'dist');

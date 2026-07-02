@@ -44,3 +44,18 @@ Newest entries at the bottom. Each Build Order step gets a `[step N]` marker whe
   dropped just because the wiki lacks a limit.
 - **Flip math runs client-side** (server serves merged raw snapshots): capture-rate and
   offset knobs can then be tweaked in the UI without waiting on the server cache.
+
+## Server proxy (Build Order step 3) — [step 3 complete]
+
+- Client-facing API is intentionally small: `/api/items` (mapping+latest+1h+volumes merged
+  server-side, one payload for the whole table), `/api/timeseries`, `/api/config`,
+  `/api/health`. Raw wiki passthrough endpoints are not exposed — nothing needs them and it
+  keeps the browser off the wiki API by construction.
+- `TtlCache` counts upstream calls per key; `/api/health` exposes the counters, which is how
+  the "N client requests -> 1 upstream call" acceptance check is verified (confirmed live:
+  6x `/api/items` -> `{mapping:1, latest:1, 1h:1, volumes:1}`).
+- `upstreamStale` on responses = any underlying payload came from the fallback path after an
+  upstream failure. Per-item price staleness (old highTime/lowTime) is a separate,
+  client-computed flag using `staleAfterSeconds`.
+- Wiki fetches carry a 15s AbortSignal timeout so a hung upstream can't pile up requests
+  behind the single-flight lock.
