@@ -101,3 +101,12 @@ Newest entries at the bottom. Each Build Order step gets a `[step N]` marker whe
 - **volume1h = 0 is treated as a real zero, not "unknown"** — throughput falls back to
   dailyVolume/6, else 0. Found live: a dead item (0 volume, 6-day-old prices) showed a
   fantasy "+7.7b profit/4h" because zero-volume fell through to the 11k buy limit.
+
+## Polish (Build Order step 8) — [step 8 complete]
+
+- Flip Finder filters + sort live entirely in the URL (`?q=&mm=&roi=&mv=&bmin=&bmax=&world=
+  &exempt=&nostale=&norisk=&sort=col.dir`), defaults omitted, `replace` navigation so typing
+  doesn't spam history. The URL is the single source of truth — no duplicated state.
+- Auto-refresh countdown ("updated Xs ago · next in Ys" + manual ⟳) driven by TanStack
+  Query's dataUpdatedAt; interval comes from `/api/config`.
+- Loading skeletons for table/chart/panels; error states include a retry button.

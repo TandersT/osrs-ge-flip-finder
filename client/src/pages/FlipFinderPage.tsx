@@ -1,17 +1,38 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import type { SortingState } from '@tanstack/react-table';
 import { useAppConfig, useItems } from '../lib/api';
-import { applyFilters, buildRows, EMPTY_FILTERS, type Filters } from '../lib/rows';
+import { applyFilters, buildRows, type Filters } from '../lib/rows';
+import { filtersFromParams, paramsFromState, sortingFromParams } from '../lib/urlState';
 import { useWatchlist } from '../lib/watchlist';
 import { FilterBar } from '../components/FilterBar';
 import { FlipTable, rowMid, type TableContext } from '../components/FlipTable';
+import { RefreshIndicator } from '../components/RefreshIndicator';
+import { TableSkeleton } from '../components/Skeleton';
 
 export default function FlipFinderPage() {
   const config = useAppConfig();
-  const { data, isPending, isError, error } = useItems(config.clientRefreshSeconds);
-  const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
-  const [sorting, setSorting] = useState<SortingState>([{ id: 'profitPer4h', desc: true }]);
+  const { data, isPending, isError, error, refetch, isFetching, dataUpdatedAt } = useItems(
+    config.clientRefreshSeconds,
+  );
+  const [searchParams, setSearchParams] = useSearchParams();
   const { isWatched, toggle } = useWatchlist();
+
+  // URL is the single source of truth for filters + sort, so views are shareable
+  const filters = useMemo(() => filtersFromParams(searchParams), [searchParams]);
+  const sorting = useMemo(() => sortingFromParams(searchParams), [searchParams]);
+
+  const setFilters = useCallback(
+    (next: Filters) => setSearchParams(paramsFromState(next, sorting), { replace: true }),
+    [setSearchParams, sorting],
+  );
+  const setSorting = useCallback(
+    (updater: SortingState | ((old: SortingState) => SortingState)) => {
+      const next = typeof updater === 'function' ? updater(sorting) : updater;
+      setSearchParams(paramsFromState(filters, next), { replace: true });
+    },
+    [setSearchParams, filters, sorting],
+  );
 
   const nowSec = useMemo(() => Math.floor(Date.now() / 1000), [data]);
   const rows = useMemo(
@@ -25,12 +46,23 @@ export default function FlipFinderPage() {
   );
 
   if (isPending) {
-    return <div className="p-10 text-center opacity-60">Loading live prices…</div>;
+    return (
+      <div className="flex flex-col gap-3">
+        <TableSkeleton rows={14} />
+      </div>
+    );
   }
   if (isError) {
     return (
-      <div className="p-10 text-center text-osrs-red">
-        Failed to load prices: {(error as Error).message}
+      <div className="flex flex-col items-center gap-3 p-14 text-center">
+        <span className="text-3xl">⚠</span>
+        <p className="text-osrs-red">Failed to load prices: {(error as Error).message}</p>
+        <button
+          onClick={() => refetch()}
+          className="rounded border border-panel-border px-3 py-1.5 text-sm hover:border-gold hover:text-gold"
+        >
+          Try again
+        </button>
       </div>
     );
   }
@@ -43,8 +75,16 @@ export default function FlipFinderPage() {
         </div>
       )}
       <FilterBar filters={filters} onChange={setFilters} />
-      <div className="text-xs opacity-50">
-        {filtered.length.toLocaleString('en-US')} of {rows.length.toLocaleString('en-US')} items
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="text-xs opacity-50">
+          {filtered.length.toLocaleString('en-US')} of {rows.length.toLocaleString('en-US')} items
+        </div>
+        <RefreshIndicator
+          dataUpdatedAt={dataUpdatedAt}
+          refreshSeconds={config.clientRefreshSeconds}
+          isFetching={isFetching}
+          onRefresh={() => refetch()}
+        />
       </div>
       <FlipTable rows={filtered} context={tableContext} sorting={sorting} onSortingChange={setSorting} />
     </div>

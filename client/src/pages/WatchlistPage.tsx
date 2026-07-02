@@ -6,6 +6,7 @@ import { useAppConfig, useItems } from '../lib/api';
 import { buildRows } from '../lib/rows';
 import { useWatchlist } from '../lib/watchlist';
 import { FlipTable, rowMid, type TableContext } from '../components/FlipTable';
+import { TableSkeleton } from '../components/Skeleton';
 
 export default function WatchlistPage() {
   const config = useAppConfig();
@@ -42,7 +43,7 @@ export default function WatchlistPage() {
     [nowSec, isWatched, toggle, sinceAdded],
   );
 
-  if (isPending) return <div className="p-10 text-center opacity-60">Loading watchlist…</div>;
+  if (isPending) return <TableSkeleton rows={6} />;
   if (isError) {
     return (
       <div className="p-10 text-center text-osrs-red">

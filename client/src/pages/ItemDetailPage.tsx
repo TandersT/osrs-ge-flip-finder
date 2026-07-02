@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import type { Timestep } from '@osrs-flip/shared';
 import { computeFlip, formatGpFull } from '@osrs-flip/shared';
@@ -8,6 +8,7 @@ import { useWatchlist } from '../lib/watchlist';
 import { GpText } from '../components/GpText';
 import { ItemIcon } from '../components/ItemIcon';
 import { PriceVolumeChart } from '../components/PriceVolumeChart';
+import { ChartSkeleton, Skeleton } from '../components/Skeleton';
 
 const NATURE_RUNE_ID = 561;
 const TIMESTEPS: Timestep[] = ['5m', '1h', '6h', '24h'];
@@ -65,11 +66,31 @@ export default function ItemDetailPage() {
     [daily.data, item],
   );
 
+  useEffect(() => {
+    document.title = item ? `${item.name} — GE Flip Finder` : 'GE Flip Finder — OSRS';
+    return () => {
+      document.title = 'GE Flip Finder — OSRS';
+    };
+  }, [item]);
+
   if (!Number.isInteger(id) || id <= 0) {
     return <div className="p-10 text-center text-osrs-red">Invalid item id.</div>;
   }
   if (items.isPending) {
-    return <div className="p-10 text-center opacity-60">Loading item…</div>;
+    return (
+      <div className="flex flex-col gap-4">
+        <Skeleton className="h-9 w-72" />
+        <div className="grid gap-4 lg:grid-cols-3">
+          <div className="rounded border border-panel-border bg-panel p-4 lg:col-span-2">
+            <ChartSkeleton />
+          </div>
+          <div className="flex flex-col gap-4">
+            <Skeleton className="h-56 w-full" />
+            <Skeleton className="h-56 w-full" />
+          </div>
+        </div>
+      </div>
+    );
   }
   if (items.isError) {
     return (
@@ -153,7 +174,7 @@ export default function ItemDetailPage() {
               ))}
             </div>
             {chart.isPending ? (
-              <div className="flex h-72 items-center justify-center text-sm opacity-50">Loading chart…</div>
+              <ChartSkeleton />
             ) : chart.isError ? (
               <div className="flex h-72 items-center justify-center text-sm text-osrs-red">
                 Failed to load history: {(chart.error as Error).message}

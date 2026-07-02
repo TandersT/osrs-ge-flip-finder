@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import type { LongtermResponse, LongtermRow } from '@osrs-flip/shared';
 import { GpText } from '../components/GpText';
 import { ItemIcon } from '../components/ItemIcon';
+import { TableSkeleton } from '../components/Skeleton';
 
 type Lens = 'all' | 'dips' | 'momentum';
 
@@ -77,7 +78,7 @@ export default function LongTermPage() {
     }
   };
 
-  if (isPending) return <div className="p-10 text-center opacity-60">Loading screen…</div>;
+  if (isPending) return <TableSkeleton rows={12} />;
   if (isError) {
     return (
       <div className="p-10 text-center text-osrs-red">
