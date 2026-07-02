@@ -21,8 +21,49 @@ function numCell(value: number | null | undefined) {
   return <span className="tabular-nums">{value.toLocaleString('en-US')}</span>;
 }
 
-export function buildColumns(nowSec: number) {
+export function rowMid(row: FlipRow): number | null {
+  if (row.high !== null && row.low !== null) return (row.high + row.low) / 2;
+  return row.high ?? row.low;
+}
+
+function FlagBadge({ label, className, title }: { label: string; className: string; title: string }) {
+  return (
+    <span className={`rounded px-1 text-[10px] uppercase tracking-wide ${className}`} title={title}>
+      {label}
+    </span>
+  );
+}
+
+export interface TableContext {
+  nowSec: number;
+  isWatched: (id: number) => boolean;
+  onToggleWatch: (row: FlipRow) => void;
+  /** When set (watchlist view), adds a "Since added" column: id -> fractional change. */
+  sinceAdded?: Map<number, number | null>;
+}
+
+export function buildColumns({ nowSec, isWatched, onToggleWatch, sinceAdded }: TableContext) {
   return [
+    col.display({
+      id: 'watch',
+      header: '',
+      size: 36,
+      cell: (info) => {
+        const watched = isWatched(info.row.original.id);
+        return (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggleWatch(info.row.original);
+            }}
+            title={watched ? 'Remove from watchlist' : 'Add to watchlist'}
+            className={`px-1 text-base leading-none ${watched ? 'text-gold' : 'text-parchment/30 hover:text-parchment/70'}`}
+          >
+            {watched ? '★' : '☆'}
+          </button>
+        );
+      },
+    }),
     col.accessor('name', {
       header: 'Item',
       cell: (info) => (
@@ -119,23 +160,76 @@ export function buildColumns(nowSec: number) {
       },
       sortUndefined: 'last',
     }),
+    ...(sinceAdded
+      ? [
+          col.accessor((r) => sinceAdded.get(r.id) ?? undefined, {
+            id: 'sinceAdded',
+            header: 'Since added',
+            cell: (info) => {
+              const v = info.getValue();
+              if (v === undefined || v === null) return <span className="opacity-40">—</span>;
+              const cls = v > 0 ? 'text-osrs-green' : v < 0 ? 'text-osrs-red' : 'opacity-70';
+              return (
+                <span className={`${cls} tabular-nums`}>
+                  {v > 0 ? '+' : ''}
+                  {(v * 100).toFixed(1)}%
+                </span>
+              );
+            },
+            sortUndefined: 'last' as const,
+          }),
+        ]
+      : []),
+    col.display({
+      id: 'flags',
+      header: 'Flags',
+      enableSorting: false,
+      cell: (info) => {
+        const row = info.row.original;
+        return (
+          <span className="flex gap-1">
+            {row.isStale && (
+              <FlagBadge
+                label="stale"
+                className="bg-zinc-700/60 text-zinc-300"
+                title="One of the price sides hasn't updated recently"
+              />
+            )}
+            {row.isThin && (
+              <FlagBadge
+                label="thin"
+                className="bg-red-900/60 text-red-300"
+                title="Juicy margin on tiny volume — possible manipulation or unfillable offer"
+              />
+            )}
+            {row.isUnstable && (
+              <FlagBadge
+                label="unstable"
+                className="bg-orange-900/60 text-orange-300"
+                title="Latest price disagrees sharply with the 1h average"
+              />
+            )}
+          </span>
+        );
+      },
+    }),
   ];
 }
 
 interface FlipTableProps {
   rows: FlipRow[];
-  nowSec: number;
+  context: TableContext;
   sorting: SortingState;
   onSortingChange: (updater: SortingState | ((old: SortingState) => SortingState)) => void;
 }
 
-export function FlipTable({ rows, nowSec, sorting, onSortingChange }: FlipTableProps) {
+export function FlipTable({ rows, context, sorting, onSortingChange }: FlipTableProps) {
   const navigate = useNavigate();
   const parentRef = useRef<HTMLDivElement>(null);
 
   const table = useReactTable({
     data: rows,
-    columns: buildColumns(nowSec),
+    columns: buildColumns(context),
     state: { sorting },
     onSortingChange,
     getCoreRowModel: getCoreRowModel(),

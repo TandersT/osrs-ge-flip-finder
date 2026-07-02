@@ -88,3 +88,16 @@ Newest entries at the bottom. Each Build Order step gets a `[step N]` marker whe
   2-week-old rally had already faded (negative 7d change).
 - **Dip** = z <= -1 vs the 90-day mean (needs >= 30 daily buckets of history). In a broadly
   falling market ~half the screen qualifies — expected; the view sorts deepest-z first.
+
+## Watchlist, flags, presets (Build Order step 7) — [step 7 complete]
+
+- Watchlist stores `{id, addedAt, priceAtAdd}` in localStorage (`geff:watchlist:v1`) via a
+  `useSyncExternalStore` store so stars stay in sync across table/detail/watchlist views.
+  "Since added" compares current mid price to `priceAtAdd`.
+- **Thin** = ROI >= 4% on < 30 units/1h. **Unstable** = latest high or low deviating > 10%
+  from its 1h average. Both are display badges plus one combined "hide risky" filter.
+- Presets replace the whole filter state (not merge): Low risk high volume (vol>=1000,
+  margin>0, hide stale+risky), Big ticket (buy>=1m, margin>=10k), Tax-free only, F2P.
+- **volume1h = 0 is treated as a real zero, not "unknown"** — throughput falls back to
+  dailyVolume/6, else 0. Found live: a dead item (0 volume, 6-day-old prices) showed a
+  fantasy "+7.7b profit/4h" because zero-volume fell through to the 11k buy limit.

@@ -8,12 +8,35 @@ export interface FlipRow extends ItemSnapshot {
   /** Age in seconds of the OLDER of the two price sides (worst case). */
   ageSeconds: number | null;
   isStale: boolean;
+  /** Juicy margin on tiny volume — likely manipulation or an unfillable offer. */
+  isThin: boolean;
+  /** Latest prices disagree sharply with the 1h average. */
+  isUnstable: boolean;
+}
+
+/** "Thin" = ROI at least this… */
+const THIN_MIN_ROI = 0.04;
+/** …on fewer than this many units traded per hour. */
+const THIN_MAX_VOLUME_1H = 30;
+/** "Unstable" = either latest side deviating more than this from its 1h average. */
+const UNSTABLE_DEVIATION = 0.1;
+
+function deviates(latest: number | null, hourAvg: number | null): boolean {
+  if (latest === null || hourAvg === null || hourAvg === 0) return false;
+  return Math.abs(latest - hourAvg) / hourAvg > UNSTABLE_DEVIATION;
 }
 
 /** Compute flip economics for every item snapshot. `nowSec` fixes "age" per refresh. */
 export function buildRows(items: ItemSnapshot[], cfg: AppConfig, nowSec: number): FlipRow[] {
   return items.map((item) => {
-    const volumePer4h = item.volume1h > 0 ? item.volume1h * 4 : null;
+    // 0 recent volume is a real zero, not "unknown": fall back to the daily
+    // average, else feasible quantity legitimately becomes 0 (dead item).
+    const volumePer4h =
+      item.volume1h > 0
+        ? item.volume1h * 4
+        : item.dailyVolume !== null
+          ? item.dailyVolume / 6
+          : null;
     const flip = computeFlip(
       {
         low: item.low,
@@ -35,6 +58,13 @@ export function buildRows(items: ItemSnapshot[], cfg: AppConfig, nowSec: number)
       volumePer4h,
       ageSeconds,
       isStale: ageSeconds === null || ageSeconds > cfg.staleAfterSeconds,
+      isThin:
+        flip !== null &&
+        flip.marginPerItem > 0 &&
+        flip.roi >= THIN_MIN_ROI &&
+        item.volume1h < THIN_MAX_VOLUME_1H,
+      isUnstable:
+        deviates(item.high, item.avgHighPrice1h) || deviates(item.low, item.avgLowPrice1h),
     };
   });
 }
@@ -52,6 +82,8 @@ export interface Filters {
   membership: Membership;
   taxExemptOnly: boolean;
   hideStale: boolean;
+  /** Hide rows flagged thin or unstable. */
+  hideRisky: boolean;
 }
 
 export const EMPTY_FILTERS: Filters = {
@@ -64,7 +96,32 @@ export const EMPTY_FILTERS: Filters = {
   membership: 'all',
   taxExemptOnly: false,
   hideStale: false,
+  hideRisky: false,
 };
+
+export interface FilterPreset {
+  name: string;
+  filters: Filters;
+}
+
+export const FILTER_PRESETS: FilterPreset[] = [
+  {
+    name: 'Low risk, high volume',
+    filters: { ...EMPTY_FILTERS, minVolume1h: 1000, minMargin: 1, hideStale: true, hideRisky: true },
+  },
+  {
+    name: 'Big ticket',
+    filters: { ...EMPTY_FILTERS, minBuyPrice: 1_000_000, minMargin: 10_000 },
+  },
+  {
+    name: 'Tax-free only',
+    filters: { ...EMPTY_FILTERS, taxExemptOnly: true },
+  },
+  {
+    name: 'F2P',
+    filters: { ...EMPTY_FILTERS, membership: 'f2p', minVolume1h: 100 },
+  },
+];
 
 /** Case-insensitive substring, falling back to in-order subsequence ("fuzzy"). */
 export function nameMatches(name: string, query: string): boolean {
@@ -87,6 +144,7 @@ export function applyFilters(rows: FlipRow[], f: Filters): FlipRow[] {
     if (f.membership === 'f2p' && row.members) return false;
     if (f.taxExemptOnly && !row.taxExempt) return false;
     if (f.hideStale && row.isStale) return false;
+    if (f.hideRisky && (row.isThin || row.isUnstable)) return false;
     if (f.minVolume1h !== null && row.volume1h < f.minVolume1h) return false;
     if (f.minMargin !== null || f.minRoi !== null || f.minBuyPrice !== null || f.maxBuyPrice !== null) {
       if (row.flip === null) return false;

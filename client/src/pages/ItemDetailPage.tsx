@@ -3,7 +3,8 @@ import { Link, useParams } from 'react-router-dom';
 import type { Timestep } from '@osrs-flip/shared';
 import { computeFlip, formatGpFull } from '@osrs-flip/shared';
 import { useAppConfig, useItems, useTimeseries } from '../lib/api';
-import { computeItemStats } from '../lib/itemStats';
+import { computeItemStats, currentMid } from '../lib/itemStats';
+import { useWatchlist } from '../lib/watchlist';
 import { GpText } from '../components/GpText';
 import { ItemIcon } from '../components/ItemIcon';
 import { PriceVolumeChart } from '../components/PriceVolumeChart';
@@ -45,6 +46,7 @@ export default function ItemDetailPage() {
   const id = Number(idParam);
   const config = useAppConfig();
   const [timestep, setTimestep] = useState<Timestep>('1h');
+  const { isWatched, toggle } = useWatchlist();
 
   const items = useItems(config.clientRefreshSeconds);
   const chart = useTimeseries(id, timestep);
@@ -110,6 +112,15 @@ export default function ItemDetailPage() {
       <header className="flex flex-wrap items-center gap-3">
         <ItemIcon icon={item.icon} name={item.name} size={36} />
         <h1 className="text-2xl font-bold">{item.name}</h1>
+        <button
+          onClick={() => toggle(item.id, currentMid(item))}
+          title={isWatched(item.id) ? 'Remove from watchlist' : 'Add to watchlist'}
+          className={`text-2xl leading-none ${
+            isWatched(item.id) ? 'text-gold' : 'text-parchment/30 hover:text-parchment/70'
+          }`}
+        >
+          {isWatched(item.id) ? '★' : '☆'}
+        </button>
         {item.members && (
           <span className="rounded bg-amber-900/50 px-1.5 py-0.5 text-[11px] uppercase tracking-wide text-amber-300" title="Members-only item">
             members

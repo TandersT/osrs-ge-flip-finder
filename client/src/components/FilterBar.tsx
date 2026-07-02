@@ -1,4 +1,4 @@
-import type { Filters, Membership } from '../lib/rows';
+import { FILTER_PRESETS, EMPTY_FILTERS, type Filters, type Membership } from '../lib/rows';
 
 function NumberInput({
   label,
@@ -63,7 +63,26 @@ export function FilterBar({
     onChange({ ...filters, [key]: value });
 
   return (
-    <div className="flex flex-wrap items-end gap-x-4 gap-y-3 rounded border border-panel-border bg-panel p-3">
+    <div className="flex flex-col gap-3 rounded border border-panel-border bg-panel p-3">
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-xs uppercase tracking-wide opacity-60">Presets</span>
+        {FILTER_PRESETS.map((preset) => (
+          <button
+            key={preset.name}
+            onClick={() => onChange(preset.filters)}
+            className="rounded bg-panel-light px-2.5 py-1 text-xs font-medium text-parchment/80 hover:text-gold"
+          >
+            {preset.name}
+          </button>
+        ))}
+        <button
+          onClick={() => onChange(EMPTY_FILTERS)}
+          className="rounded px-2.5 py-1 text-xs text-parchment/50 hover:text-parchment"
+        >
+          Reset
+        </button>
+      </div>
+      <div className="flex flex-wrap items-end gap-x-4 gap-y-3">
       <label className="flex flex-col gap-1 text-xs">
         <span className="uppercase tracking-wide opacity-60">Search</span>
         <input
@@ -104,6 +123,13 @@ export function FilterBar({
           onChange={(v) => set('hideStale', v)}
           title="Hide items whose prices haven't updated recently"
         />
+        <Toggle
+          label="Hide risky"
+          checked={filters.hideRisky}
+          onChange={(v) => set('hideRisky', v)}
+          title="Hide thin-volume and unstable-spread items"
+        />
+      </div>
       </div>
     </div>
   );
