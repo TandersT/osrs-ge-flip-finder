@@ -72,3 +72,19 @@ Newest entries at the bottom. Each Build Order step gets a `[step N]` marker whe
 - Item detail's long-horizon stats always use the 24h timeseries (separate cached query)
   regardless of the chart's selected timestep.
 - High-alch panel prices nature runes live from the same /api/items payload (id 561).
+
+## Long-term screener (Build Order step 6) — [step 6 complete]
+
+- The wiki timeseries endpoint is per-item, so screening ALL ~4.6k items would mean 4.6k
+  upstream calls. Instead the server screens the **top `LONGTERM_MAX_ITEMS` (250) most
+  liquid items** with `dailyVolume >= LONGTERM_MIN_DAILY_VOLUME` (5000) — both .env knobs.
+  The "liquid items only" constraint is also what the spec's dip definition wants.
+- Build runs lazily on first request with 4 workers + 50ms per-fetch delay (~20s for 250
+  items), result cached 12h in memory; `/api/longterm` reports `{status, progress}` so the
+  UI shows a progress bar with partial data. State is lost on restart; first request
+  rebuilds.
+- **Momentum** = 14-day price slope > +0.3%/day AND 30-day volume slope > 0 AND 7-day
+  change > 0. The last clause was added after live testing surfaced "momentum" items whose
+  2-week-old rally had already faded (negative 7d change).
+- **Dip** = z <= -1 vs the 90-day mean (needs >= 30 daily buckets of history). In a broadly
+  falling market ~half the screen qualifies — expected; the view sorts deepest-z first.

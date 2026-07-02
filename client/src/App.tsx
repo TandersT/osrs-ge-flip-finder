@@ -1,6 +1,7 @@
 import { NavLink, Route, Routes } from 'react-router-dom';
 import FlipFinderPage from './pages/FlipFinderPage';
 import ItemDetailPage from './pages/ItemDetailPage';
+import LongTermPage from './pages/LongTermPage';
 
 function Tab({ to, label }: { to: string; label: string }) {
   return (
@@ -36,10 +37,7 @@ export default function App() {
         <Routes>
           <Route path="/" element={<FlipFinderPage />} />
           <Route path="/item/:id" element={<ItemDetailPage />} />
-          <Route
-            path="/longterm"
-            element={<div className="p-10 text-center opacity-60">Long-term view — coming in step 6.</div>}
-          />
+          <Route path="/longterm" element={<LongTermPage />} />
           <Route
             path="/watchlist"
             element={<div className="p-10 text-center opacity-60">Watchlist — coming in step 7.</div>}

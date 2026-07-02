@@ -82,6 +82,40 @@ export interface AppConfig {
   staleAfterSeconds: number;
 }
 
+/** One screened item in the long-term opportunities view. */
+export interface LongtermRow {
+  id: number;
+  name: string;
+  icon: string | null;
+  members: boolean;
+  limit: number | null;
+  dailyVolume: number | null;
+  /** Current mid price (avg of latest high/low). */
+  price: number | null;
+  change7d: number | null;
+  change30d: number | null;
+  change90d: number | null;
+  /** Std deviations the current price sits from its 90-day mean. */
+  zScore90: number | null;
+  /** Coefficient of variation of the last 30 daily mids. */
+  volatility30: number | null;
+  /** Normalised slope of the last 30 daily volumes (fraction/day; >0 = rising). */
+  volumeTrend30: number | null;
+  /** Liquid item trading >= 1 std dev below its 90-day mean. */
+  isDip: boolean;
+  /** Sustained price uptrend with rising volume. */
+  isMomentum: boolean;
+}
+
+export interface LongtermResponse {
+  status: 'building' | 'ready';
+  /** Build progress 0..1 (1 when ready). */
+  progress: number;
+  /** Unix seconds of the last completed build; null while the first build runs. */
+  builtAt: number | null;
+  rows: LongtermRow[];
+}
+
 /** Knobs for flip math. */
 export interface FlipConfig {
   /** Fraction of 4h market volume one player can realistically capture. */

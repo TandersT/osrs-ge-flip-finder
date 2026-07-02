@@ -2,6 +2,7 @@ import type { FastifyInstance } from 'fastify';
 import type { AppConfig, Timestep } from '@osrs-flip/shared';
 import { config } from './config.js';
 import { getItems } from './items.js';
+import { getLongterm } from './longterm.js';
 import { getTimeseries, wikiCache } from './wiki.js';
 
 const TIMESTEPS: ReadonlySet<string> = new Set(['5m', '1h', '6h', '24h']);
@@ -24,6 +25,8 @@ export function registerApiRoutes(app: FastifyInstance): void {
       return reply.code(502).send({ error: 'Upstream price API unavailable' });
     }
   });
+
+  app.get('/api/longterm', async () => getLongterm());
 
   app.get<{ Querystring: { id?: string; timestep?: string } }>(
     '/api/timeseries',
