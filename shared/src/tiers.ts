@@ -29,6 +29,8 @@ export interface Entitlements {
   alchRows: number | null;
   /** Rows visible in the decanting screener; null = all. */
   decantRows: number | null;
+  /** Rows visible in the Best Deals ranking; null = all. */
+  dealRows: number | null;
   /** Rows visible in the set-combining screener; null = all. */
   setRows: number | null;
   /** Rows visible in the AFK-methods screener; null = all. */
@@ -53,6 +55,7 @@ export const ENTITLEMENTS: Record<Tier, Entitlements> = {
     advancedCharts: false,
     alchRows: 5,
     decantRows: 5,
+    dealRows: 5,
     setRows: 5,
     methodRows: 5,
     allocator: false,
@@ -70,6 +73,7 @@ export const ENTITLEMENTS: Record<Tier, Entitlements> = {
     advancedCharts: true,
     alchRows: null,
     decantRows: null,
+    dealRows: null,
     setRows: null,
     methodRows: null,
     allocator: true,

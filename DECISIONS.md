@@ -236,6 +236,32 @@ free); **premium sells scale + long-horizon analytics**:
   account-less license keys validated server-side (SQLite), Phase 2 accounts only if
   cross-device sync demands it. 5 new e2e specs cover caps, teaser, locks, unlock, bad codes.
 
+## Post-completion: Best Deals — the GEFF Deal Score (2026-07-03)
+
+One cross-cutting 1–100 ranking (`/deals`) putting flips and bankstand methods on the same
+scale. The score is deliberately OPINIONATED (constants in `lib/score.ts`, explained in the
+FAQ at /faq#deal-score):
+
+    score = 100 × return × liquidity × effort × capital × flags × consistency
+
+- **return**: log-ramp of est. gp/hour (50k/h → 0, 5m/h → 1) — log because doubling small
+  profits matters more than topping up big ones.
+- **liquidity**: log-ramp of the thinnest leg's hourly volume (10 → 0, 1000+ → 1).
+- **effort** (Stefan's ask — active time is a cost): flips ×1.0, AFK ×0.8, semi-AFK ×0.65,
+  click-heavy ×0.45.
+- **capital** (expensive = risky): ×1.0 up to 1m in motion/hour, sliding to ×0.5 at 100m+.
+- **flags**: stale ×0.3, thin ×0.25, unstable ×0.5. Tax is already inside every margin.
+- **consistency**: current margin vs the margin implied by 1h-average prices (0.4–1.0) —
+  a spread that didn't exist an hour ago is probably a blip. Methods carry a flat ×0.9
+  rate-estimate uncertainty instead.
+
+Deals exclude negative-profit rows and methods the imported character can't do. Max-capital
+slider + GE-only methods toggle (default on). Free: top-5 teaser (`dealRows` entitlement).
+Sanity check on live data: a liquid 5m-capital flip (43) outranks Old School bonds at
++5m/h (290m in motion) and a +27m/h click-heavy poison method on 814/h volume (19) —
+the discounts do what they were designed to do. 10 score unit tests (monotonicity,
+flag/capital/effort ordering, blip detection); 3 e2e specs.
+
 ## Post-completion: GE-only restriction on tools (2026-07-03)
 
 Stefan wants tools restricted to what's doable AT the Grand Exchange. Applied:

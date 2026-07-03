@@ -46,7 +46,7 @@ const herb = (herbName: string, level: number): MethodDef => ({
 
 const poison = (ammo: string): MethodDef => ({
   id: `poison-${ammo.toLowerCase().replaceAll(' ', '-')}`,
-  name: `Poison ${ammo.toLowerCase()}s (p++)`,
+  name: `Poison ${ammo.toLowerCase().replace(/knife$/, 'knive')}s (p++)`,
   category: 'No skill',
   members: true,
   intensity: 'high',

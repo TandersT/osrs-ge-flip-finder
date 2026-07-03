@@ -18,6 +18,11 @@ const FEATURES: { label: string; free: string; premium: string }[] = [
     free: `Top ${ENTITLEMENTS.free.longtermRows} rows`,
     premium: 'All screened items',
   },
+  {
+    label: 'Best Deals ranking (cross-tool score)',
+    free: `Top ${ENTITLEMENTS.free.dealRows} deals`,
+    premium: 'Full ranking',
+  },
   { label: 'Price alerts', free: `${ENTITLEMENTS.free.alertsMax} armed`, premium: 'Unlimited' },
   { label: 'Flip analytics (margin history, hourly activity)', free: '—', premium: '✓' },
   {

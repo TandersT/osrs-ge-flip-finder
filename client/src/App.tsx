@@ -8,6 +8,7 @@ import FaqPage from './pages/FaqPage';
 import FlipLogPage from './pages/FlipLogPage';
 import PremiumPage from './pages/PremiumPage';
 import ToolsPage from './pages/ToolsPage';
+import DealsPage from './pages/DealsPage';
 import { AlertWatcher } from './components/AlertWatcher';
 
 function Tab({ to, label }: { to: string; label: string }) {
@@ -39,6 +40,7 @@ export default function App() {
         </span>
         <nav className="flex max-w-full gap-1 overflow-x-auto whitespace-nowrap [scrollbar-width:none]">
           <Tab to="/" label="Flip Finder" />
+          <Tab to="/deals" label="Best Deals" />
           <Tab to="/starter" label="Get Started" />
           <Tab to="/longterm" label="Long-term" />
           <Tab to="/tools" label="Tools" />
@@ -51,6 +53,7 @@ export default function App() {
       <main className="flex-1">
         <Routes>
           <Route path="/" element={<FlipFinderPage />} />
+          <Route path="/deals" element={<DealsPage />} />
           <Route path="/starter" element={<StarterPage />} />
           <Route path="/item/:id" element={<ItemDetailPage />} />
           <Route path="/longterm" element={<LongTermPage />} />
