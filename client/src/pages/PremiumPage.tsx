@@ -16,11 +16,25 @@ const FEATURES: { label: string; free: string; premium: string }[] = [
   {
     label: 'Long-term screener (dips, momentum, z-scores)',
     free: `Top ${ENTITLEMENTS.free.longtermRows} rows`,
-    premium: 'All ~250 items',
+    premium: 'All screened items',
   },
+  { label: 'Price alerts', free: `${ENTITLEMENTS.free.alertsMax} armed`, premium: 'Unlimited' },
+  { label: 'Flip analytics (margin history, hourly activity)', free: '—', premium: '✓' },
+  {
+    label: 'High-alch & decanting screeners',
+    free: `Top ${ENTITLEMENTS.free.alchRows} rows`,
+    premium: 'All items',
+  },
+  { label: 'Budget portfolio allocator', free: '—', premium: '✓' },
   { label: 'Watchlist', free: `${ENTITLEMENTS.free.watchlistMax} items`, premium: 'Unlimited' },
   { label: 'Flip log', free: `${ENTITLEMENTS.free.fliplogMax} flips`, premium: 'Unlimited' },
-  { label: 'CSV export', free: '—', premium: '✓' },
+  { label: 'Flip-log analytics (win rates, monthly P&L)', free: '—', premium: '✓' },
+  { label: 'CSV export & import', free: '—', premium: '✓' },
+  {
+    label: 'Saved filter views',
+    free: `${ENTITLEMENTS.free.savedFiltersMax}`,
+    premium: 'Unlimited',
+  },
 ];
 
 export default function PremiumPage() {

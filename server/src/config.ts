@@ -22,5 +22,5 @@ export const config = {
   clientRefreshSeconds: num('CLIENT_REFRESH_SECONDS', 60),
   staleAfterSeconds: num('STALE_AFTER_SECONDS', 1800),
   longtermMinDailyVolume: num('LONGTERM_MIN_DAILY_VOLUME', 5000),
-  longtermMaxItems: num('LONGTERM_MAX_ITEMS', 250),
+  longtermMaxItems: num('LONGTERM_MAX_ITEMS', 400),
 };

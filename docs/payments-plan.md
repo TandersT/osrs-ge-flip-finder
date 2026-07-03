@@ -100,6 +100,18 @@ becomes rampant. Plan: email magic-link auth (no passwords), licenses attach to 
 account, watchlist/fliplog gain optional server sync with the localStorage version as the
 offline cache. Est. ~1 week. Not before there's evidence it's needed.
 
+## Unlocked by this backend (already designed client-side)
+
+Once license keys give us a server-side identity, three shipped-adjacent features light up:
+
+- **Push alert delivery** — the client-side alert model (`lib/alerts.ts`) moves its
+  evaluation loop server-side for licensed users; delivery via user-supplied Discord
+  webhook URL or email. The alert schema needs no changes.
+- **Cross-device sync** — watchlist/flip log/alerts/saved views are all localStorage
+  stores with identical shapes; sync = the same JSON keyed by license.
+- **RuneLite Flipping Utilities import** — extend `fromCsv` with a column mapping for
+  their export format (the import UI already exists).
+
 ## Out of scope (deliberately)
 
 - Crypto/gp payments (ToS risk), lifetime tier (kills MRR signal while validating),

@@ -4,6 +4,9 @@ import { formatGpCompact, formatGpFull } from '@osrs-flip/shared';
 import { useAppConfig, useItems } from '../lib/api';
 import { buildRows, type Membership } from '../lib/rows';
 import { BUDGET_PRESETS, computeStarterFlips, DEFAULT_BUDGET } from '../lib/starter';
+import { allocateBank } from '../lib/allocate';
+import { useTier } from '../lib/tier';
+import { UnlockStrip } from '../components/UnlockStrip';
 import { GpText } from '../components/GpText';
 import { ItemIcon } from '../components/ItemIcon';
 import { SliderInput } from '../components/SliderInput';
@@ -61,12 +64,23 @@ export default function StarterPage() {
     setParams(next, { replace: true });
   };
 
+  const { entitlements } = useTier();
   const nowSec = useMemo(() => Math.floor(Date.now() / 1000), [data]);
-  const picks = useMemo(() => {
-    if (!data) return [];
-    const rows = buildRows(data.items, config, nowSec);
-    return computeStarterFlips(rows, { budget, membership });
-  }, [data, config, nowSec, budget, membership]);
+  const rows = useMemo(
+    () => (data ? buildRows(data.items, config, nowSec) : []),
+    [data, config, nowSec],
+  );
+  const picks = useMemo(
+    () => computeStarterFlips(rows, { budget, membership }),
+    [rows, budget, membership],
+  );
+  const portfolio = useMemo(() => {
+    if (!entitlements.allocator || rows.length === 0) return null;
+    const eligible = rows.filter((r) =>
+      membership === 'all' ? true : membership === 'members' ? r.members : !r.members,
+    );
+    return allocateBank(eligible, budget);
+  }, [entitlements.allocator, rows, budget, membership]);
 
   return (
     <div className="flex flex-col gap-5">
@@ -215,6 +229,58 @@ export default function StarterPage() {
             window and that you capture ~{Math.round(config.captureRate * 100)}% of traded volume.
             Real fills vary — start small and learn each item&apos;s rhythm.
           </p>
+        </section>
+      )}
+
+      {portfolio === null ? (
+        <UnlockStrip>
+          Suggested portfolio: spread {formatGpCompact(budget)} across up to 5 flips sized by
+          limits and volume — one click instead of picking by hand.
+        </UnlockStrip>
+      ) : (
+        <section className="rounded border border-gold/40 bg-panel p-4">
+          <h2 className="mb-1 text-xs font-semibold uppercase tracking-wide text-gold">
+            Suggested portfolio <span className="ml-1 font-normal normal-case text-gold/60">⭐ premium</span>
+          </h2>
+          <p className="mb-2 text-xs opacity-50">
+            Greedy split of your budget across the strongest safe flips — diversified so one
+            stuck offer can&apos;t freeze the bank.
+          </p>
+          {portfolio.allocations.length === 0 ? (
+            <p className="py-2 text-sm opacity-60">Nothing safe and liquid fits this budget right now.</p>
+          ) : (
+            <>
+              <table className="w-full border-collapse text-sm">
+                <tbody>
+                  {portfolio.allocations.map((a) => (
+                    <tr
+                      key={a.row.id}
+                      onClick={() => navigate(`/item/${a.row.id}`)}
+                      className="cursor-pointer border-t border-panel-border/50 hover:bg-panel-light"
+                    >
+                      <td className="px-2 py-1.5">
+                        <span className="flex items-center gap-2">
+                          <ItemIcon icon={a.row.icon} name={a.row.name} />
+                          {a.row.name}
+                        </span>
+                      </td>
+                      <td className="px-2 py-1.5 text-right tabular-nums">{a.qty.toLocaleString('en-US')} ×</td>
+                      <td className="px-2 py-1.5 text-right"><GpText amount={a.row.flip!.buyAt} /></td>
+                      <td className="px-2 py-1.5 text-right opacity-70">= <GpText amount={a.cost} /></td>
+                      <td className="px-2 py-1.5 text-right"><GpText amount={a.expectedProfit} signed /></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <p className="mt-2 text-right text-sm">
+                <span className="opacity-60">capital used </span>
+                <GpText amount={portfolio.totalCost} />
+                <span className="mx-2 opacity-40">·</span>
+                <span className="opacity-60">est. profit / 4h </span>
+                <GpText amount={portfolio.totalProfit} signed />
+              </p>
+            </>
+          )}
         </section>
       )}
 

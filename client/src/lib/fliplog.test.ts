@@ -3,8 +3,12 @@ import {
   buildEntry,
   completeEntry,
   computeStats,
+  CSV_HEADER,
   cumulativeProfit,
+  fromCsv,
   migrateV1,
+  monthlyProfit,
+  perItemStats,
   toCsv,
   type NewFlip,
 } from './fliplog';
@@ -100,11 +104,68 @@ describe('toCsv', () => {
     const open = buildEntry(flip({ sellPrice: null }), 'b', 200);
     const csv = toCsv([closed, open]);
     const lines = csv.split('\n');
-    expect(lines[0]).toBe('bought_at,sold_at,item,qty,buy_price,sell_price,tax_per_item,profit,status');
+    expect(lines[0]).toBe(CSV_HEADER);
     expect(csv).toContain('"Bandos ""BCP"" chestplate"');
     expect(lines[1]).toContain('closed');
     expect(lines[2]).toContain(',,,open'.replace(',,,', ',,')); // empty sell/tax/profit
     expect(lines[2]!.endsWith('open')).toBe(true);
+  });
+});
+
+describe('fromCsv round-trip', () => {
+  it('re-imports exported entries including open positions and quotes', () => {
+    const closed = buildEntry(flip({ itemName: 'Bandos "BCP" chestplate' }), 'a', 100);
+    const open = buildEntry(flip({ sellPrice: null, qty: 3 }), 'b', 200);
+    const parsed = fromCsv(toCsv([closed, open]));
+    expect(parsed).toHaveLength(2);
+    const [c, o] = parsed;
+    expect(c!.itemName).toBe('Bandos "BCP" chestplate');
+    expect(c!.itemId).toBe(4151);
+    expect(c!.profit).toBe(closed.profit);
+    expect(c!.loggedAt).toBe(100);
+    expect(o!.sellPrice).toBeNull();
+    expect(o!.soldAt).toBeNull();
+    expect(o!.qty).toBe(3);
+  });
+
+  it('rejects junk and skips malformed rows', () => {
+    expect(fromCsv('not,a,log\n1,2,3')).toEqual([]);
+    const good = toCsv([buildEntry(flip(), 'a', 100)]);
+    expect(fromCsv(good + '\n,,,broken,,,,,,,')).toHaveLength(1);
+  });
+});
+
+describe('log analytics', () => {
+  it('aggregates per item over closed flips only', () => {
+    const whipWin = buildEntry(flip({ qty: 1, sellPrice: 1_200 }), 'a', 100);
+    const whipLoss = buildEntry(flip({ qty: 1, sellPrice: 900 }), 'b', 200);
+    const openWhip = buildEntry(flip({ sellPrice: null }), 'c', 300);
+    const rune = buildEntry(
+      flip({ itemId: 561, itemName: 'Nature rune', sellPrice: 1_050, qty: 2 }),
+      'd',
+      400,
+    );
+    const stats = perItemStats([whipWin, whipLoss, openWhip, rune]);
+    expect(stats).toHaveLength(2);
+    const whip = stats.find((s) => s.itemId === 4151)!;
+    expect(whip.flips).toBe(2);
+    expect(whip.wins).toBe(1);
+    expect(whip.profit).toBe(whipWin.profit! + whipLoss.profit!);
+  });
+
+  it('computes average hold only from real durations', () => {
+    const twoHours = completeEntry(buildEntry(flip({ sellPrice: null }), 'a', 0), 1_100, 7_200);
+    const instant = buildEntry(flip(), 'b', 100);
+    const agg = perItemStats([twoHours, instant])[0]!;
+    expect(agg.avgHoldHours).toBe(2);
+  });
+
+  it('groups realized profit by month chronologically', () => {
+    const jan = buildEntry(flip({ qty: 1 }), 'a', Date.UTC(2026, 0, 15) / 1000);
+    const mar = buildEntry(flip({ qty: 2 }), 'b', Date.UTC(2026, 2, 10) / 1000);
+    const months = monthlyProfit([mar, jan]);
+    expect(months.map((m) => m.month)).toEqual(['2026-01', '2026-03']);
+    expect(months[1]!.profit).toBe(mar.profit);
   });
 });
 

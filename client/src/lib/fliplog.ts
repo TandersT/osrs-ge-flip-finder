@@ -133,8 +133,10 @@ export function cumulativeProfit(
   });
 }
 
+export const CSV_HEADER =
+  'bought_at,sold_at,item,item_id,tax_exempt,qty,buy_price,sell_price,tax_per_item,profit,status';
+
 export function toCsv(entries: FlipLogEntry[]): string {
-  const header = 'bought_at,sold_at,item,qty,buy_price,sell_price,tax_per_item,profit,status';
   const rows = [...entries]
     .sort((a, b) => a.loggedAt - b.loggedAt)
     .map((e) =>
@@ -143,6 +145,8 @@ export function toCsv(entries: FlipLogEntry[]): string {
         e.soldAt === null ? '' : new Date(e.soldAt * 1000).toISOString(),
         // quote + escape the only free-text field
         `"${e.itemName.replaceAll('"', '""')}"`,
+        e.itemId,
+        e.taxExempt ? 1 : 0,
         e.qty,
         e.buyPrice,
         e.sellPrice ?? '',
@@ -151,7 +155,131 @@ export function toCsv(entries: FlipLogEntry[]): string {
         isOpen(e) ? 'open' : 'closed',
       ].join(','),
     );
-  return [header, ...rows].join('\n');
+  return [CSV_HEADER, ...rows].join('\n');
+}
+
+function splitCsvLine(line: string): string[] {
+  const out: string[] = [];
+  let cur = '';
+  let inQuotes = false;
+  for (let i = 0; i < line.length; i++) {
+    const c = line[i]!;
+    if (inQuotes) {
+      if (c === '"') {
+        if (line[i + 1] === '"') {
+          cur += '"';
+          i++;
+        } else inQuotes = false;
+      } else cur += c;
+    } else if (c === '"') inQuotes = true;
+    else if (c === ',') {
+      out.push(cur);
+      cur = '';
+    } else cur += c;
+  }
+  out.push(cur);
+  return out;
+}
+
+/**
+ * Parse a previously exported CSV back into entries (ids are re-assigned on
+ * import). Tolerates the pre-item_id export format. Malformed rows are skipped.
+ */
+export function fromCsv(text: string): Omit<FlipLogEntry, 'id'>[] {
+  const lines = text.split(/\r?\n/).filter((l) => l.trim() !== '');
+  if (lines.length < 2) return [];
+  const cols = splitCsvLine(lines[0]!).map((c) => c.trim());
+  const idx = (name: string) => cols.indexOf(name);
+  if (idx('bought_at') === -1 || idx('item') === -1 || idx('buy_price') === -1) return [];
+
+  const out: Omit<FlipLogEntry, 'id'>[] = [];
+  for (const line of lines.slice(1)) {
+    const f = splitCsvLine(line);
+    const get = (name: string) => (idx(name) === -1 ? '' : (f[idx(name)] ?? ''));
+    const loggedAt = Math.floor(Date.parse(get('bought_at')) / 1000);
+    const qty = Number(get('qty'));
+    const buyPrice = Number(get('buy_price'));
+    if (!Number.isFinite(loggedAt) || !(qty > 0) || !Number.isFinite(buyPrice)) continue;
+    const soldRaw = get('sold_at');
+    const sellRaw = get('sell_price');
+    const open = get('status') === 'open' || sellRaw === '';
+    out.push({
+      itemId: Number(get('item_id')) || 0,
+      itemName: get('item') || 'Unknown item',
+      icon: null,
+      taxExempt: get('tax_exempt') === '1',
+      qty,
+      buyPrice,
+      sellPrice: open ? null : Number(sellRaw),
+      taxPerItem: open ? null : Number(get('tax_per_item')) || 0,
+      profit: open ? null : Number(get('profit')) || 0,
+      loggedAt,
+      soldAt: open || soldRaw === '' ? (open ? null : loggedAt) : Math.floor(Date.parse(soldRaw) / 1000),
+    });
+  }
+  return out;
+}
+
+export interface ItemAgg {
+  itemId: number;
+  itemName: string;
+  icon: string | null;
+  flips: number;
+  wins: number;
+  profit: number;
+  /** Mean hold time in hours over flips with real durations; null if none. */
+  avgHoldHours: number | null;
+}
+
+/** Per-item aggregates over CLOSED flips, sorted by total profit. */
+export function perItemStats(entries: FlipLogEntry[]): ItemAgg[] {
+  const byItem = new Map<string, ItemAgg & { holdSum: number; holdN: number }>();
+  for (const e of entries) {
+    if (isOpen(e)) continue;
+    const key = `${e.itemId}:${e.itemName}`;
+    let agg = byItem.get(key);
+    if (!agg) {
+      agg = {
+        itemId: e.itemId,
+        itemName: e.itemName,
+        icon: e.icon,
+        flips: 0,
+        wins: 0,
+        profit: 0,
+        avgHoldHours: null,
+        holdSum: 0,
+        holdN: 0,
+      };
+      byItem.set(key, agg);
+    }
+    agg.flips++;
+    agg.profit += e.profit!;
+    if (e.profit! > 0) agg.wins++;
+    if (e.soldAt !== null && e.soldAt > e.loggedAt) {
+      agg.holdSum += (e.soldAt - e.loggedAt) / 3600;
+      agg.holdN++;
+    }
+  }
+  return [...byItem.values()]
+    .map(({ holdSum, holdN, ...agg }) => ({
+      ...agg,
+      avgHoldHours: holdN > 0 ? holdSum / holdN : null,
+    }))
+    .sort((a, b) => b.profit - a.profit);
+}
+
+/** Realized profit per calendar month (chronological). */
+export function monthlyProfit(entries: FlipLogEntry[]): { month: string; profit: number }[] {
+  const byMonth = new Map<string, number>();
+  for (const e of entries) {
+    if (isOpen(e)) continue;
+    const d = new Date(e.soldAt! * 1000);
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    byMonth.set(key, (byMonth.get(key) ?? 0) + e.profit!);
+  }
+  return [...byMonth.entries()]
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([month, profit]) => ({ month, profit }));
 }
 
 /** v1 entries were always closed and lacked taxExempt/soldAt. */
@@ -227,5 +355,9 @@ export function useFlipLog() {
   const remove = useCallback((id: string) => {
     persist(entries.filter((e) => e.id !== id));
   }, []);
-  return { entries: list, add, complete, remove };
+  const importMany = useCallback((parsed: Omit<FlipLogEntry, 'id'>[]) => {
+    const withIds = parsed.map((e) => ({ ...e, id: crypto.randomUUID() }));
+    persist([...withIds, ...entries]);
+  }, []);
+  return { entries: list, add, complete, remove, importMany };
 }

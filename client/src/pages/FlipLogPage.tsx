@@ -16,10 +16,14 @@ import { nameMatches } from '../lib/rows';
 import {
   cumulativeProfit,
   computeStats,
+  fromCsv,
   isOpen,
+  monthlyProfit,
+  perItemStats,
   useFlipLog,
   type FlipLogEntry,
 } from '../lib/fliplog';
+import { UnlockStrip } from '../components/UnlockStrip';
 import { GpText } from '../components/GpText';
 import { ItemIcon } from '../components/ItemIcon';
 import { UpsellDialog } from '../components/UpsellDialog';
@@ -251,7 +255,7 @@ function OpenPositionRow({
 export default function FlipLogPage() {
   const config = useAppConfig();
   const { data } = useItems(config.clientRefreshSeconds);
-  const { entries, add, complete, remove } = useFlipLog();
+  const { entries, add, complete, remove, importMany } = useFlipLog();
   const [params] = useSearchParams();
   const { entitlements } = useTier();
   const [upsell, setUpsell] = useState<null | 'cap' | 'csv'>(null);
@@ -340,6 +344,35 @@ export default function FlipLogPage() {
     a.click();
     URL.revokeObjectURL(url);
   };
+
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [importNote, setImportNote] = useState<string | null>(null);
+  const startImport = () => {
+    if (!entitlements.csvImport) {
+      setUpsell('csv');
+      return;
+    }
+    fileRef.current?.click();
+  };
+  const handleImportFile = async (file: File | undefined) => {
+    if (!file) return;
+    const parsed = fromCsv(await file.text());
+    if (parsed.length === 0) {
+      setImportNote('No valid rows found — is this a Flip Log export?');
+      return;
+    }
+    importMany(parsed);
+    setImportNote(`Imported ${parsed.length} flip${parsed.length === 1 ? '' : 's'}.`);
+  };
+
+  const itemAgg = useMemo(
+    () => (entitlements.logAnalytics ? perItemStats(entries) : []),
+    [entitlements.logAnalytics, entries],
+  );
+  const months = useMemo(
+    () => (entitlements.logAnalytics ? monthlyProfit(entries) : []),
+    [entitlements.logAnalytics, entries],
+  );
 
   const dateFmt = new Intl.DateTimeFormat('en-GB', {
     month: 'short',
@@ -509,6 +542,58 @@ export default function FlipLogPage() {
         </section>
       )}
 
+      {closed.length > 0 &&
+        (entitlements.logAnalytics ? (
+          <section className="rounded border border-gold/40 bg-panel p-4">
+            <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-gold">
+              Your numbers <span className="ml-1 font-normal normal-case text-gold/60">⭐ premium</span>
+            </h2>
+            <div className="grid gap-4 lg:grid-cols-2">
+              <div className="overflow-auto">
+                <h3 className="mb-1 text-xs uppercase tracking-wide opacity-60">By item</h3>
+                <table className="w-full border-collapse text-sm">
+                  <tbody>
+                    {itemAgg.slice(0, 8).map((a) => (
+                      <tr key={`${a.itemId}:${a.itemName}`} className="border-t border-panel-border/50">
+                        <td className="px-2 py-1.5">
+                          <span className="flex items-center gap-2">
+                            <ItemIcon icon={a.icon} name={a.itemName} size={18} />
+                            {a.itemName}
+                          </span>
+                        </td>
+                        <td className="px-2 py-1.5 text-right tabular-nums opacity-70">
+                          {a.flips}× · {Math.round((a.wins / a.flips) * 100)}% win
+                        </td>
+                        <td className="px-2 py-1.5 text-right tabular-nums opacity-70">
+                          {a.avgHoldHours === null ? '—' : `${a.avgHoldHours.toFixed(1)}h hold`}
+                        </td>
+                        <td className="px-2 py-1.5 text-right"><GpText amount={a.profit} signed /></td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <div>
+                <h3 className="mb-1 text-xs uppercase tracking-wide opacity-60">By month</h3>
+                <table className="w-full border-collapse text-sm">
+                  <tbody>
+                    {months.map((m) => (
+                      <tr key={m.month} className="border-t border-panel-border/50">
+                        <td className="px-2 py-1.5 opacity-70">{m.month}</td>
+                        <td className="px-2 py-1.5 text-right"><GpText amount={m.profit} signed /></td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+        ) : (
+          <UnlockStrip>
+            Your numbers: per-item win rates, hold times and monthly P&amp;L from your own log.
+          </UnlockStrip>
+        ))}
+
       {closed.length > 0 && (
         <section className="overflow-auto rounded border border-panel-border bg-panel">
           <div className="flex items-center justify-between px-3 py-2">
@@ -520,13 +605,23 @@ export default function FlipLogPage() {
                 </span>
               )}
             </span>
-            <button
-              onClick={exportCsv}
-              title={entitlements.csvExport ? 'Download the full log as CSV' : 'CSV export is a Premium feature'}
-              className="rounded border border-panel-border px-2 py-1 text-xs hover:border-gold hover:text-gold"
-            >
-              {entitlements.csvExport ? '⬇' : '🔒'} Export CSV
-            </button>
+            <span className="flex items-center gap-2">
+              {importNote && <span className="text-xs opacity-60">{importNote}</span>}
+              <button
+                onClick={startImport}
+                title={entitlements.csvImport ? 'Restore a previous Flip Log export' : 'CSV import is a Premium feature'}
+                className="rounded border border-panel-border px-2 py-1 text-xs hover:border-gold hover:text-gold"
+              >
+                {entitlements.csvImport ? '⬆' : '🔒'} Import CSV
+              </button>
+              <button
+                onClick={exportCsv}
+                title={entitlements.csvExport ? 'Download the full log as CSV' : 'CSV export is a Premium feature'}
+                className="rounded border border-panel-border px-2 py-1 text-xs hover:border-gold hover:text-gold"
+              >
+                {entitlements.csvExport ? '⬇' : '🔒'} Export CSV
+              </button>
+            </span>
           </div>
           <table className="w-full min-w-[760px] border-collapse text-sm">
             <thead className="bg-panel-light">
@@ -596,9 +691,31 @@ export default function FlipLogPage() {
             <Link to="/starter" className="text-gold underline">Get Started guide</Link>, place your
             buy offer in-game, then log it here — leave the sell empty until it completes.
           </p>
+          <button
+            onClick={startImport}
+            title={
+              entitlements.csvImport
+                ? 'Restore a previous Flip Log export'
+                : 'CSV import is a Premium feature'
+            }
+            className="rounded border border-panel-border px-3 py-1.5 text-xs hover:border-gold hover:text-gold"
+          >
+            {entitlements.csvImport ? '⬆' : '🔒'} Import CSV
+          </button>
+          {importNote && <span className="text-xs opacity-60">{importNote}</span>}
         </div>
       )}
 
+      <input
+        ref={fileRef}
+        type="file"
+        accept=".csv,text/csv"
+        className="hidden"
+        onChange={(e) => {
+          void handleImportFile(e.target.files?.[0]);
+          e.target.value = '';
+        }}
+      />
       <UpsellDialog open={upsell === 'cap'} onClose={() => setUpsell(null)} title="Flip log full">
         The free tier keeps your last {entitlements.fliplogMax} flips. Premium logs without
         limits — and exports everything as CSV.

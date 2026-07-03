@@ -236,6 +236,33 @@ free); **premium sells scale + long-horizon analytics**:
   account-less license keys validated server-side (SQLite), Phase 2 accounts only if
   cross-device sync demands it. 5 new e2e specs cover caps, teaser, locks, unlock, bad codes.
 
+## Post-completion: premium feature expansion (2026-07-03)
+
+All planned premium tiers built (S, A, and the account-less subset of B):
+
+- **Price alerts** (`lib/alerts.ts`): margin/buy/sell vs threshold, one-shot with re-arm.
+  An app-level `AlertWatcher` re-evaluates on every items refresh (only the alerted item
+  ids are rebuilt) and fires browser Notifications. Created inline on item pages, managed
+  on the watchlist page. Free: 1 armed alert.
+- **Flip analytics** on item pages (premium): post-tax margin-over-time (from the selected
+  chart window) + hour-of-day volume/spread profile from the ~15-day 1h series. Locked
+  strip for free — data isn't even fetched when locked (`enabled` on the query).
+- **/tools**: high-alch screener (profit/cast vs live nature rune; gp/h at 1,200 casts) and
+  decanting screener (per-dose arbitrage across dose variants, doses conserved, post-tax,
+  volume = min of both sides). Free: top-5 teasers.
+- **Budget allocator** on the starter page (premium): greedy split of the budget across the
+  strongest safe flips (≤5 items, sized by limit/volume/budget). Greedy over knapsack on
+  purpose — with 4h re-buys and moving prices, robustness beats optimality.
+- **Flip-log analytics** (premium): per-item flips/win-rate/hold-time/profit + monthly P&L.
+- **Saved filter views**: named snapshots of the finder's URL state as chips. Free: 1.
+- **CSV import/restore** (premium): export gained item_id/tax_exempt columns; import is
+  header-mapped (tolerates old exports), quote-aware, skips malformed rows. e2e does a
+  full export→wipe→import round-trip. The import button also lives in the empty state —
+  found via a failing e2e: restoring into an empty log was otherwise impossible.
+- Long-term screener universe default raised 250 → 400 (~35s build).
+- Tier B leftovers (Discord/email push, cross-device sync, RuneLite import mapping) are
+  documented in docs/payments-plan.md as unlocked by the license backend.
+
 ## Post-completion: spacing/whitespace pass (2026-07-03)
 
 Stefan reported overlapping elements. Root cause found at 640–1024px widths: the slider

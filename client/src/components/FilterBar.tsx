@@ -1,4 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { atLimit } from '@osrs-flip/shared';
+import { useSavedFilters } from '../lib/savedFilters';
+import { useTier } from '../lib/tier';
+import { UpsellDialog } from './UpsellDialog';
 import { formatGpCompact } from '@osrs-flip/shared';
 import { FILTER_PRESETS, EMPTY_FILTERS, type Filters, type Membership } from '../lib/rows';
 import { SliderInput } from './SliderInput';
@@ -42,6 +47,28 @@ export function FilterBar({
   // Sliders/toggles collapse behind a "Filters" button on phones
   const [expanded, setExpanded] = useState(false);
 
+  // Saved views: name the current URL state and recall it with one click
+  const [searchParams, setSearchParams] = useSearchParams();
+  const { saved, save, remove } = useSavedFilters();
+  const { entitlements } = useTier();
+  const [naming, setNaming] = useState(false);
+  const [name, setName] = useState('');
+  const [savedUpsell, setSavedUpsell] = useState(false);
+
+  const startSave = () => {
+    if (atLimit(saved.length, entitlements.savedFiltersMax)) {
+      setSavedUpsell(true);
+      return;
+    }
+    setNaming(true);
+  };
+  const confirmSave = () => {
+    if (name.trim() === '') return;
+    save(name, searchParams.toString());
+    setName('');
+    setNaming(false);
+  };
+
   // "/" jumps to search from anywhere on the page (unless already typing)
   const searchRef = useRef<HTMLInputElement>(null);
   useEffect(() => {
@@ -80,6 +107,56 @@ export function FilterBar({
         >
           Reset
         </button>
+        <span className="mx-1 h-4 w-px bg-panel-border" />
+        {saved.map((f) => (
+          <span key={f.id} className="flex items-center rounded bg-panel-light">
+            <button
+              onClick={() => setSearchParams(new URLSearchParams(f.search))}
+              title="Apply this saved view"
+              className="px-2.5 py-1 text-xs font-medium text-gold/90 hover:text-gold"
+            >
+              ★ {f.name}
+            </button>
+            <button
+              onClick={() => remove(f.id)}
+              title="Delete saved view"
+              className="pr-1.5 text-xs text-parchment/30 hover:text-osrs-red"
+            >
+              ✕
+            </button>
+          </span>
+        ))}
+        {naming ? (
+          <span className="flex items-center gap-1">
+            <input
+              autoFocus
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') confirmSave();
+                if (e.key === 'Escape') setNaming(false);
+              }}
+              placeholder="View name…"
+              className="w-32 rounded border border-panel-border bg-ink px-2 py-1 text-xs text-parchment outline-none focus:border-gold"
+              aria-label="Saved view name"
+            />
+            <button
+              onClick={confirmSave}
+              className="rounded bg-gold px-2 py-1 text-xs font-semibold text-ink hover:brightness-110"
+            >
+              Save
+            </button>
+          </span>
+        ) : (
+          <button
+            onClick={startSave}
+            title="Save the current filters and sort as a named view"
+            className="rounded px-2.5 py-1 text-xs text-parchment/50 hover:text-gold"
+          >
+            ★ Save view
+          </button>
+        )}
       </div>
 
       <div className="flex flex-wrap items-end gap-x-6 gap-y-4">
@@ -189,6 +266,10 @@ export function FilterBar({
           </div>
         </div>
       </div>
+      <UpsellDialog open={savedUpsell} onClose={() => setSavedUpsell(false)} title="Saved views">
+        The free tier keeps {entitlements.savedFiltersMax} saved view. Premium saves as many
+        as you like.
+      </UpsellDialog>
     </div>
   );
 }

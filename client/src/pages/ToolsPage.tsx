@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { formatGpFull } from '@osrs-flip/shared';
 import { useAppConfig, useItems } from '../lib/api';
 import { computeAlchRows, computeDecantRows, ALCH_CASTS_PER_HOUR } from '../lib/tools';
@@ -7,23 +7,16 @@ import { useTier } from '../lib/tier';
 import { GpText } from '../components/GpText';
 import { ItemIcon } from '../components/ItemIcon';
 import { TableSkeleton } from '../components/Skeleton';
+import { UnlockStrip } from '../components/UnlockStrip';
 
 type Tool = 'alch' | 'decant';
 
-function UnlockStrip({ hidden, what }: { hidden: number; what: string }) {
+function TeaserStrip({ hidden, what }: { hidden: number; what: string }) {
   if (hidden <= 0) return null;
   return (
-    <div className="flex flex-wrap items-center justify-between gap-3 rounded border border-gold/40 bg-panel px-4 py-3">
-      <span className="text-sm opacity-80">
-        🔒 {hidden.toLocaleString('en-US')} more {what} with Premium.
-      </span>
-      <Link
-        to="/premium"
-        className="rounded bg-gold px-3 py-1.5 text-sm font-semibold text-ink hover:brightness-110"
-      >
-        Unlock with Premium
-      </Link>
-    </div>
+    <UnlockStrip>
+      {hidden.toLocaleString('en-US')} more {what} with Premium.
+    </UnlockStrip>
   );
 }
 
@@ -141,7 +134,7 @@ export default function ToolsPage() {
               <div className="p-10 text-center text-sm opacity-60">No alchable items at this volume floor.</div>
             )}
           </section>
-          <UnlockStrip hidden={alchRows.length - visibleAlch.length} what="alchable items, ranked by profit" />
+          <TeaserStrip hidden={alchRows.length - visibleAlch.length} what="alchable items, ranked by profit" />
         </>
       ) : (
         <>
@@ -186,7 +179,7 @@ export default function ToolsPage() {
               <div className="p-10 text-center text-sm opacity-60">No decantable families at this volume floor.</div>
             )}
           </section>
-          <UnlockStrip hidden={decantRows.length - visibleDecant.length} what="potion families, ranked by margin" />
+          <TeaserStrip hidden={decantRows.length - visibleDecant.length} what="potion families, ranked by margin" />
         </>
       )}
     </div>

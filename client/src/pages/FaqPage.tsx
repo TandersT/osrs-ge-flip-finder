@@ -259,9 +259,11 @@ export default function FaqPage() {
           <p>
             Everything you need to flip is free: the live finder, filters, risk flags, item
             charts, the starter guide. <Link to="/premium" className="text-gold underline">Premium</Link>{' '}
-            removes the scale limits (watchlist, flip log, CSV export) and unlocks the full
-            long-term screener plus a full year of price history. The underlying price data is
-            the community&apos;s and stays free for everyone.
+            removes the scale limits (watchlist, flip log, alerts, saved views, CSV
+            export/import) and unlocks the analytics: the full long-term screener, a year of
+            price history, margin-history and hourly-activity charts, the complete high-alch
+            and decanting screeners, and the budget portfolio allocator. The underlying price
+            data is the community&apos;s and stays free for everyone.
           </p>
         </Q>
         <Q q="Is this affiliated with Jagex?">
