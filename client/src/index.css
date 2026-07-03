@@ -6,6 +6,39 @@ body {
   @apply bg-ink text-parchment antialiased;
 }
 
+/* Range sliders: the input is tall enough to CONTAIN the thumb (no vertical
+   overflow into neighbouring rows); track and thumb are styled explicitly. */
+input[type='range'] {
+  @apply h-4 w-full cursor-pointer appearance-none bg-transparent;
+}
+input[type='range']::-webkit-slider-runnable-track {
+  height: 6px;
+  border-radius: 3px;
+  background: #2a251d;
+}
+input[type='range']::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 9999px;
+  background: #ffb83f;
+  border: 2px solid #8a5a00;
+  margin-top: -4px; /* centres the 14px thumb on the 6px track */
+}
+input[type='range']::-moz-range-track {
+  height: 6px;
+  border-radius: 3px;
+  background: #2a251d;
+}
+input[type='range']::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 9999px;
+  background: #ffb83f;
+  border: 2px solid #8a5a00;
+}
+
 /* Brief cell tint when a live price moves between refreshes */
 @keyframes flash-up {
   from {

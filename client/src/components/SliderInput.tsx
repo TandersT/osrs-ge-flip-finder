@@ -90,7 +90,7 @@ export function SliderInput({
           value={value ?? ''}
           placeholder={offLabel}
           onChange={(e) => onChange(e.target.value === '' ? null : Number(e.target.value))}
-          className={`w-[4.5rem] rounded border border-panel-border bg-ink px-1.5 py-0.5 text-right text-xs outline-none focus:border-gold ${
+          className={`w-20 rounded border border-panel-border bg-ink px-1.5 py-0.5 text-right text-xs outline-none focus:border-gold ${
             value === null ? 'text-parchment/60' : 'text-gold'
           }`}
         />
@@ -102,7 +102,6 @@ export function SliderInput({
         max={POSITIONS}
         value={position}
         onChange={(e) => handleSlider(Number(e.target.value))}
-        className="h-1.5 w-full cursor-pointer appearance-none rounded bg-panel-light accent-gold"
       />
     </div>
   );
