@@ -8,6 +8,7 @@ import { useGatedWatchlist } from '../lib/useGatedWatchlist';
 import { FlipTable, rowMid, type TableContext } from '../components/FlipTable';
 import { TableSkeleton } from '../components/Skeleton';
 import { UpsellDialog } from '../components/UpsellDialog';
+import { AlertsSection } from '../components/AlertsSection';
 
 export default function WatchlistPage() {
   const config = useAppConfig();
@@ -55,6 +56,7 @@ export default function WatchlistPage() {
 
   if (entries.length === 0) {
     return (
+      <div className="flex flex-col gap-4">
       <div className="flex flex-col items-center gap-3 p-14 text-center">
         <span className="text-4xl">☆</span>
         <p className="opacity-70">Nothing on your watchlist yet.</p>
@@ -62,6 +64,8 @@ export default function WatchlistPage() {
           Star items in the <Link to="/" className="text-gold underline">Flip Finder</Link> to track
           them here — changes are measured from the moment you star.
         </p>
+      </div>
+      <AlertsSection />
       </div>
     );
   }
@@ -73,6 +77,7 @@ export default function WatchlistPage() {
         stored in this browser
       </div>
       <FlipTable rows={rows} context={tableContext} sorting={sorting} onSortingChange={setSorting} />
+      <AlertsSection />
       <UpsellDialog open={upsellOpen} onClose={closeUpsell} title="Watchlist full">
         The free tier tracks up to {watchlistMax} items. Premium removes the cap.
       </UpsellDialog>

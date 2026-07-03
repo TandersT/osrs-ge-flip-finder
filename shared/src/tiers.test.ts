@@ -6,12 +6,16 @@ describe('entitlements', () => {
     const free = ENTITLEMENTS.free;
     const premium = ENTITLEMENTS.premium;
     // every numeric cap is lifted, every boolean is enabled
-    expect(premium.watchlistMax).toBeNull();
-    expect(premium.fliplogMax).toBeNull();
-    expect(premium.historyDays).toBeNull();
-    expect(premium.longtermRows).toBeNull();
-    expect(premium.csvExport).toBe(true);
-    expect(free.csvExport).toBe(false);
+    for (const key of Object.keys(premium) as (keyof typeof premium)[]) {
+      const p = premium[key];
+      const f = free[key];
+      if (typeof p === 'boolean') {
+        expect(p, key).toBe(true); // premium enables every boolean
+      } else {
+        expect(p, key).toBeNull(); // premium lifts every cap
+        expect(f, key).not.toBeNull(); // free has a real cap for each
+      }
+    }
   });
 
   it('free caps are positive so the tier stays usable', () => {

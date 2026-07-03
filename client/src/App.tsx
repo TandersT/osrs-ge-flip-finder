@@ -7,6 +7,8 @@ import StarterPage from './pages/StarterPage';
 import FaqPage from './pages/FaqPage';
 import FlipLogPage from './pages/FlipLogPage';
 import PremiumPage from './pages/PremiumPage';
+import ToolsPage from './pages/ToolsPage';
+import { AlertWatcher } from './components/AlertWatcher';
 
 function Tab({ to, label }: { to: string; label: string }) {
   return (
@@ -27,6 +29,7 @@ function Tab({ to, label }: { to: string; label: string }) {
 export default function App() {
   return (
     <div className="mx-auto flex min-h-screen max-w-[1500px] flex-col gap-4 px-4 py-4">
+      <AlertWatcher />
       <header className="flex flex-wrap items-center gap-4">
         <span className="text-xl font-bold text-gold">
           💰 GE Flip Finder
@@ -38,6 +41,7 @@ export default function App() {
           <Tab to="/" label="Flip Finder" />
           <Tab to="/starter" label="Get Started" />
           <Tab to="/longterm" label="Long-term" />
+          <Tab to="/tools" label="Tools" />
           <Tab to="/watchlist" label="Watchlist" />
           <Tab to="/log" label="Flip Log" />
           <Tab to="/faq" label="FAQ" />
@@ -50,6 +54,7 @@ export default function App() {
           <Route path="/starter" element={<StarterPage />} />
           <Route path="/item/:id" element={<ItemDetailPage />} />
           <Route path="/longterm" element={<LongTermPage />} />
+          <Route path="/tools" element={<ToolsPage />} />
           <Route path="/watchlist" element={<WatchlistPage />} />
           <Route path="/log" element={<FlipLogPage />} />
           <Route path="/faq" element={<FaqPage />} />

@@ -15,10 +15,26 @@ export interface Entitlements {
   fliplogMax: number | null;
   /** CSV export of the flip log. */
   csvExport: boolean;
+  /** CSV import / restore into the flip log. */
+  csvImport: boolean;
   /** Days of 24h price history on charts; null = full (~1 year). */
   historyDays: number | null;
-  /** Rows of the long-term screener visible; null = all (~250). */
+  /** Rows of the long-term screener visible; null = all. */
   longtermRows: number | null;
+  /** Max armed price alerts; null = unlimited. */
+  alertsMax: number | null;
+  /** Margin-history + hourly-activity charts on item pages. */
+  advancedCharts: boolean;
+  /** Rows visible in the high-alch screener; null = all. */
+  alchRows: number | null;
+  /** Rows visible in the decanting screener; null = all. */
+  decantRows: number | null;
+  /** Budget portfolio allocator on the starter page. */
+  allocator: boolean;
+  /** Per-item and monthly analytics on the flip log. */
+  logAnalytics: boolean;
+  /** Max saved filter presets; null = unlimited. */
+  savedFiltersMax: number | null;
 }
 
 export const ENTITLEMENTS: Record<Tier, Entitlements> = {
@@ -26,15 +42,31 @@ export const ENTITLEMENTS: Record<Tier, Entitlements> = {
     watchlistMax: 5,
     fliplogMax: 25,
     csvExport: false,
+    csvImport: false,
     historyDays: 90,
     longtermRows: 5,
+    alertsMax: 1,
+    advancedCharts: false,
+    alchRows: 5,
+    decantRows: 5,
+    allocator: false,
+    logAnalytics: false,
+    savedFiltersMax: 1,
   },
   premium: {
     watchlistMax: null,
     fliplogMax: null,
     csvExport: true,
+    csvImport: true,
     historyDays: null,
     longtermRows: null,
+    alertsMax: null,
+    advancedCharts: true,
+    alchRows: null,
+    decantRows: null,
+    allocator: true,
+    logAnalytics: true,
+    savedFiltersMax: null,
   },
 };
 

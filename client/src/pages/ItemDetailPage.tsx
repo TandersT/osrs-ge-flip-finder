@@ -10,6 +10,8 @@ import { GpText } from '../components/GpText';
 import { ItemIcon } from '../components/ItemIcon';
 import { PriceVolumeChart } from '../components/PriceVolumeChart';
 import { ChartSkeleton, Skeleton } from '../components/Skeleton';
+import { AlertForm } from '../components/AlertForm';
+import { ItemAnalytics } from '../components/ItemAnalytics';
 import { UpsellDialog } from '../components/UpsellDialog';
 
 const NATURE_RUNE_ID = 561;
@@ -235,6 +237,9 @@ export default function ItemDetailPage() {
               />
             )}
           </Panel>
+          <div className="mt-4">
+            <ItemAnalytics item={item} chartPoints={chartPoints} timestep={timestep} config={config} />
+          </div>
         </div>
 
         <div className="flex flex-col gap-4">
@@ -278,6 +283,7 @@ export default function ItemDetailPage() {
                 📒 Log this flip
               </Link>
             </div>
+            <AlertForm item={item} defaultThreshold={flip?.marginPerItem ?? null} />
           </Panel>
 
           <Panel title="Statistics">

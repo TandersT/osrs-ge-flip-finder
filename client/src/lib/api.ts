@@ -58,10 +58,11 @@ export interface TimeseriesResponse {
   upstreamStale: boolean;
 }
 
-export function useTimeseries(id: number, timestep: Timestep) {
+export function useTimeseries(id: number, timestep: Timestep, enabled = true) {
   return useQuery({
     queryKey: ['timeseries', id, timestep],
     queryFn: () => fetchJson<TimeseriesResponse>(`/api/timeseries?id=${id}&timestep=${timestep}`),
     staleTime: 5 * 60_000,
+    enabled,
   });
 }
