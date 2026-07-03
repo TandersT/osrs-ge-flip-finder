@@ -36,6 +36,20 @@ npm run lint       # ESLint
 npm run typecheck  # tsc across workspaces
 ```
 
+### End-to-end tests
+
+```bash
+npm run build      # e2e runs against the production build
+npm run e2e        # Playwright: desktop + mobile projects (boots the server itself)
+npm run e2e:ui     # interactive runner
+```
+
+The suite covers the finder (live data, URL state, keyboard nav, zero direct wiki
+calls), item detail (charts, ranges, break-even), the starter budget math, the full
+flip-log lifecycle (open → complete → CSV), the mobile card layout and the PWA
+manifest. Tests hit the real wiki API through the server cache, so assertions are
+structural rather than value-exact. First run may need `npx playwright install chromium`.
+
 ## Production
 
 ```bash

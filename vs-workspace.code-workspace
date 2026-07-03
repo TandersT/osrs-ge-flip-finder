@@ -122,6 +122,16 @@
                 "detail": "Serve the production build (app + API on :3000); run build first"
             },
             {
+                "label": "e2e",
+                "type": "shell",
+                "command": "npm run build && npm run e2e",
+                "options": {
+                    "cwd": "${workspaceFolder:Shared}/.."
+                },
+                "problemMatcher": [],
+                "detail": "Build then run the Playwright e2e suite (desktop + mobile)"
+            },
+            {
                 "label": "launch:prep",
                 "dependsOn": [
                     "build:shared"

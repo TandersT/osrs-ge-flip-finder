@@ -193,6 +193,19 @@ Four verified batches:
    tooling dependency). No service worker yet — installability only.
    Also: the site brand is no longer an `<h1>` (one h1 per page).
 
+## Post-completion: Playwright e2e suite (2026-07-03)
+
+- 19 specs in `e2e/` (`npm run e2e`), two projects: desktop (1440px) and mobile (Pixel 7,
+  `mobile.spec.ts` only). The config's `webServer` boots `npm start`, so the suite tests the
+  production build end to end — build first.
+- Tests run against **live wiki data** through the server cache (that's the product), so
+  assertions are structural (counts, URL state, element presence) rather than value-exact.
+  The flip-log specs type deterministic prices so tax/profit maths can be asserted exactly
+  (e.g. 10 × (1100−1000−22) = +780).
+- Chose NOT to mock the API layer: a mock would re-test our own fixtures, and the wiki
+  endpoint being reachable is exactly what an ops smoke test should catch. Retries: 1
+  locally / 2 in CI absorb transient price-data weirdness.
+
 ## Post-completion: published to GitHub (2026-07-02)
 
 Stefan confirmed the intended account was `TandersT` (the `github-tanderst` SSH alias's
