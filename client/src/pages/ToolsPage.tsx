@@ -105,6 +105,9 @@ export default function ToolsPage() {
   const [minVolume, setMinVolume] = useState(10);
   const [onlyMine, setOnlyMine] = useState(false);
   const [geOnly, setGeOnly] = useState(true);
+  const [f2pOnly, setF2pOnly] = useState(false);
+  const [category, setCategory] = useState('all');
+  const [viaFilter, setViaFilter] = useState('all');
 
   const alchRows = useMemo(
     () => (data && tool === 'alch' ? computeAlchRows(data.items, config).filter((r) => r.item.volume1h >= minVolume) : []),
@@ -114,19 +117,23 @@ export default function ToolsPage() {
     () => (data && tool === 'decant' ? computeDecantRows(data.items, config).filter((r) => r.volume1h >= minVolume) : []),
     [data, config, tool, minVolume],
   );
-  const setRows = useMemo(
-    () => (data && tool === 'sets' ? computeSetRows(data.items, config).filter((r) => r.volume1h >= minVolume) : []),
-    [data, config, tool, minVolume],
-  );
+  const setRows = useMemo(() => {
+    if (!data || tool !== 'sets') return [];
+    return computeSetRows(data.items, config).filter(
+      (r) => r.volume1h >= minVolume && (viaFilter === 'all' || r.via === viaFilter),
+    );
+  }, [data, config, tool, minVolume, viaFilter]);
   const methodRows = useMemo(() => {
     if (!data || tool !== 'methods') return [];
     let rows = computeMethodRows(data.items, config, character?.levels).filter(
       (r) => r.volume1h >= minVolume,
     );
     if (geOnly) rows = rows.filter((r) => r.def.atGE);
+    if (f2pOnly) rows = rows.filter((r) => !r.def.members);
+    if (category !== 'all') rows = rows.filter((r) => r.def.category === category);
     if (onlyMine && character) rows = rows.filter((r) => r.meetsReqs);
     return rows;
-  }, [data, config, tool, minVolume, character, onlyMine, geOnly]);
+  }, [data, config, tool, minVolume, character, onlyMine, geOnly, f2pOnly, category]);
 
   const visibleAlch = entitlements.alchRows === null ? alchRows : alchRows.slice(0, entitlements.alchRows);
   const visibleDecant = entitlements.decantRows === null ? decantRows : decantRows.slice(0, entitlements.decantRows);
@@ -273,6 +280,20 @@ export default function ToolsPage() {
         </>
       ) : tool === 'sets' ? (
         <>
+          <div className="flex flex-wrap items-center gap-3">
+            <label className="flex items-center gap-2 text-xs">
+              <span className="uppercase tracking-wide opacity-60">Via</span>
+              <select
+                value={viaFilter}
+                onChange={(e) => setViaFilter(e.target.value)}
+                className="rounded border border-panel-border bg-ink px-2 py-1 text-xs text-parchment outline-none focus:border-gold"
+              >
+                <option value="all">All</option>
+                <option value="GE clerk">GE clerk (sets)</option>
+                <option value="inventory">Inventory (combos)</option>
+              </select>
+            </label>
+          </div>
           <p className="text-xs opacity-50">
             everything here is doable without leaving the GE: clerks exchange armour sets
             (right-click “Sets”), godswords assemble/dismantle with an inventory click ·
@@ -354,6 +375,32 @@ export default function ToolsPage() {
               />
               <span>GE-only (bankstand)</span>
             </label>
+            <label className="flex cursor-pointer items-center gap-1.5 text-xs" title="Only methods usable on free-to-play worlds">
+              <input
+                type="checkbox"
+                checked={f2pOnly}
+                onChange={(e) => setF2pOnly(e.target.checked)}
+                className="accent-gold"
+              />
+              <span>F2P only</span>
+            </label>
+            <label className="flex items-center gap-2 text-xs">
+              <span className="uppercase tracking-wide opacity-60">Skill</span>
+              <select
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
+                className="rounded border border-panel-border bg-ink px-2 py-1 text-xs text-parchment outline-none focus:border-gold"
+              >
+                <option value="all">All</option>
+                <option value="Herblore">Herblore</option>
+                <option value="Cooking">Cooking</option>
+                <option value="Fletching">Fletching</option>
+                <option value="Crafting">Crafting</option>
+                <option value="Smithing">Smithing</option>
+                <option value="Magic">Magic</option>
+                <option value="No skill">No skill</option>
+              </select>
+            </label>
             {character && (
               <label className="flex cursor-pointer items-center gap-1.5 text-xs">
                 <input
@@ -389,7 +436,22 @@ export default function ToolsPage() {
                   const [label, badgeCls] = INTENSITY_BADGE[r.def.intensity];
                   return (
                     <tr key={r.def.id} className="border-t border-panel-border/50" title={r.def.notes}>
-                      <td className={td}>{r.def.name}</td>
+                      <td className={td}>
+                        {r.def.name}
+                        <span className="ml-2 rounded bg-panel-light px-1 text-[10px] uppercase tracking-wide opacity-60">
+                          {r.def.category}
+                        </span>
+                        {!r.def.members && (
+                          <span className="ml-1 rounded bg-sky-900/60 px-1 text-[10px] uppercase tracking-wide text-sky-300" title="Usable on free-to-play worlds">
+                            F2P
+                          </span>
+                        )}
+                        {r.def.atGE && !geOnly && (
+                          <span className="ml-1 rounded bg-gold/20 px-1 text-[10px] uppercase tracking-wide text-gold" title="Doable standing at the Grand Exchange">
+                            GE
+                          </span>
+                        )}
+                      </td>
                       <td className={td}>
                         {r.def.requirements.length === 0 ? (
                           <span className="opacity-40">—</span>

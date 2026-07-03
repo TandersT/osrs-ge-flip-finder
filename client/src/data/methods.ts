@@ -61,7 +61,41 @@ const poison = (ammo: string): MethodDef => ({
   notes: 'One vial poisons 5 ammo per click; pure GE bankstanding.',
 });
 
+const gem = (gemName: string, level: number, members = false): MethodDef => ({
+  id: `cut-${gemName.toLowerCase()}`,
+  name: `Cut ${gemName.toLowerCase()}s`,
+  category: 'Crafting',
+  members,
+  intensity: 'high',
+  atGE: true,
+  requirements: [{ skill: 'Crafting', level }],
+  inputs: [{ name: `Uncut ${gemName.toLowerCase()}`, qty: 1 }],
+  outputs: [{ name: gemName, qty: 1 }],
+  actionsPerHour: 2_700,
+});
+
 export const METHODS: MethodDef[] = [
+  // --- Crafting: gem cutting (F2P except dragonstone below) ---
+  gem('Sapphire', 20),
+  gem('Emerald', 27),
+  gem('Ruby', 34),
+  gem('Diamond', 43),
+  // --- Crafting: stringing (F2P) ---
+  {
+    id: 'string-gold-amulet',
+    name: 'String gold amulets',
+    category: 'Crafting',
+    members: false,
+    intensity: 'low',
+    atGE: true,
+    requirements: [{ skill: 'Crafting', level: 8 }],
+    inputs: [
+      { name: 'Gold amulet (u)', qty: 1 },
+      { name: 'Ball of wool', qty: 1 },
+    ],
+    outputs: [{ name: 'Gold amulet', qty: 1 }],
+    actionsPerHour: 2_000,
+  },
   // --- No skill: poisoning ammunition (GE bankstand) ---
   poison('Dragon arrow'),
   poison('Dragon dart'),
