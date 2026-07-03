@@ -66,7 +66,7 @@ export default function WatchlistPage() {
   }
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex flex-col gap-4">
       <div className="text-xs opacity-50">
         {entries.length.toLocaleString('en-US')} watched item{entries.length === 1 ? '' : 's'} —
         stored in this browser

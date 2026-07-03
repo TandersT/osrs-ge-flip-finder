@@ -212,6 +212,21 @@ isn't installed (needs sudo) and editing the plugin config is gated. The review 
 same Playwright engine scripted; to enable the plugin, either install Chrome or add
 `--browser chromium` to the plugin's `.mcp.json` and reconnect.
 
+## Post-completion: spacing/whitespace pass (2026-07-03)
+
+Stefan reported overlapping elements. Root cause found at 640–1024px widths: the slider
+controls were laid out as [label+value row] over [slider + orphan number-input], all in
+fixed-width boxes inside a flex-wrap — each control's trailing input visually attached to
+the NEXT control's label, and value labels ("any") collided with neighbouring labels.
+
+- `SliderInput` redesigned to the standard self-contained pattern: label left + editable
+  value input right on the top row, slider full-width beneath. No orphan boxes, no
+  duplicate value text (the input IS the value, gold when set, "any"/"no cap" placeholder
+  when off). `w-full sm:w-44` so phones stack cleanly.
+- Whitespace rhythm normalised: page sections gap-4 (16px) everywhere, filter groups
+  gap-x-6/gap-y-4.
+- Verified at 390/768/1024/1440 with screenshots; zero horizontal overflow; e2e green.
+
 ## Post-completion: Playwright e2e suite (2026-07-03)
 
 - 19 specs in `e2e/` (`npm run e2e`), two projects: desktop (1440px) and mobile (Pixel 7,

@@ -56,7 +56,7 @@ export default function FlipFinderPage() {
 
   if (isPending) {
     return (
-      <div className="flex flex-col gap-3">
+      <div className="flex flex-col gap-4">
         <TableSkeleton rows={14} />
       </div>
     );
@@ -77,7 +77,7 @@ export default function FlipFinderPage() {
   }
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex flex-col gap-4">
       <NewUserBanner />
       {data.upstreamStale && (
         <div className="rounded border border-amber-700 bg-amber-950/50 px-3 py-2 text-sm text-amber-300">

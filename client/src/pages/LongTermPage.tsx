@@ -100,7 +100,7 @@ export default function LongTermPage() {
   );
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex flex-col gap-4">
       <div className="rounded border border-amber-700 bg-amber-950/50 px-3 py-2 text-sm text-amber-300">
         ⚠ OSRS prices move on game updates — new content, Leagues, holiday events. These are
         statistical signals, not guarantees.

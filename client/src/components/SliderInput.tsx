@@ -36,9 +36,9 @@ export interface SliderInputProps {
   scale?: 'linear' | 'log';
   /** Which end of the slider means "off". */
   nullAt?: 'min' | 'max';
-  /** Shown next to the label, e.g. "≥ 350k". */
+  /** Used for the tooltip on the value input, e.g. "≥ 350k". */
   format: (v: number) => string;
-  /** Label when the filter is off. */
+  /** Input placeholder when the filter is off. */
   offLabel?: string;
   title?: string;
   /** Rounding step for linear scale. */
@@ -46,8 +46,9 @@ export interface SliderInputProps {
 }
 
 /**
- * Slider + tiny number input for a nullable filter bound. Dragging to the
- * "off" end clears the filter; typing an exact number still works.
+ * A self-contained filter bound: label + editable value on the top row,
+ * slider full-width below. Dragging to the "off" end clears the filter.
+ * Full-width on phones so controls stack instead of colliding.
  */
 export function SliderInput({
   label,
@@ -77,31 +78,32 @@ export function SliderInput({
   };
 
   return (
-    <div className="flex w-44 flex-col gap-1 text-xs" title={title}>
-      <label htmlFor={id} className="flex justify-between uppercase tracking-wide">
-        <span className="opacity-60">{label}</span>
-        <span className={value === null ? 'opacity-40 normal-case' : 'text-gold normal-case'}>
-          {value === null ? offLabel : format(value)}
-        </span>
-      </label>
-      <div className="flex items-center gap-2">
-        <input
-          id={id}
-          type="range"
-          min={0}
-          max={POSITIONS}
-          value={position}
-          onChange={(e) => handleSlider(Number(e.target.value))}
-          className="h-1.5 flex-1 cursor-pointer appearance-none rounded bg-panel-light accent-gold"
-        />
+    <div className="flex w-full flex-col gap-1.5 text-xs sm:w-44" title={title}>
+      <div className="flex items-center justify-between gap-2">
+        <label htmlFor={id} className="uppercase tracking-wide opacity-60">
+          {label}
+        </label>
         <input
           type="number"
+          aria-label={`${label} — exact value`}
+          title={value === null ? offLabel : format(value)}
           value={value ?? ''}
-          placeholder="—"
+          placeholder={offLabel}
           onChange={(e) => onChange(e.target.value === '' ? null : Number(e.target.value))}
-          className="w-[4.5rem] rounded border border-panel-border bg-ink px-1.5 py-0.5 text-right text-xs text-parchment outline-none focus:border-gold"
+          className={`w-[4.5rem] rounded border border-panel-border bg-ink px-1.5 py-0.5 text-right text-xs outline-none focus:border-gold ${
+            value === null ? 'text-parchment/60' : 'text-gold'
+          }`}
         />
       </div>
+      <input
+        id={id}
+        type="range"
+        min={0}
+        max={POSITIONS}
+        value={position}
+        onChange={(e) => handleSlider(Number(e.target.value))}
+        className="h-1.5 w-full cursor-pointer appearance-none rounded bg-panel-light accent-gold"
+      />
     </div>
   );
 }
