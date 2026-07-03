@@ -2,14 +2,21 @@ import { useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { formatGpFull } from '@osrs-flip/shared';
 import { useAppConfig, useItems } from '../lib/api';
-import { computeAlchRows, computeDecantRows, ALCH_CASTS_PER_HOUR } from '../lib/tools';
+import {
+  computeAlchRows,
+  computeDecantRows,
+  computeMethodRows,
+  computeSetRows,
+  ALCH_CASTS_PER_HOUR,
+} from '../lib/tools';
+import { useCharacter } from '../lib/character';
 import { useTier } from '../lib/tier';
 import { GpText } from '../components/GpText';
 import { ItemIcon } from '../components/ItemIcon';
 import { TableSkeleton } from '../components/Skeleton';
 import { UnlockStrip } from '../components/UnlockStrip';
 
-type Tool = 'alch' | 'decant';
+type Tool = 'alch' | 'decant' | 'sets' | 'methods';
 
 function TeaserStrip({ hidden, what }: { hidden: number; what: string }) {
   if (hidden <= 0) return null;
@@ -24,14 +31,79 @@ const th = (right: boolean) =>
   `whitespace-nowrap px-3 py-2 text-xs font-semibold uppercase tracking-wide text-gold ${right ? 'text-right' : 'text-left'}`;
 const td = 'whitespace-nowrap px-3 py-1.5';
 
+const INTENSITY_BADGE = {
+  low: ['AFK', 'bg-emerald-900/60 text-emerald-300'],
+  medium: ['semi-AFK', 'bg-amber-900/50 text-amber-300'],
+  high: ['click-heavy', 'bg-red-900/50 text-red-300'],
+} as const;
+
+/** Import an OSRS character from the official hiscores to gate methods by level. */
+function CharacterImport() {
+  const { character, importCharacter, clear } = useCharacter();
+  const [name, setName] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const run = async () => {
+    if (name.trim() === '') return;
+    setBusy(true);
+    setError(null);
+    setError(await importCharacter(name));
+    setBusy(false);
+    setName('');
+  };
+
+  if (character) {
+    return (
+      <span className="flex items-center gap-2 text-xs">
+        <span className="rounded bg-panel-light px-2 py-1">
+          ⚔️ <span className="font-medium text-gold">{character.name}</span>
+          <span className="ml-1 opacity-60">
+            (Herb {character.levels.Herblore ?? 1} · Craft {character.levels.Crafting ?? 1} ·
+            Magic {character.levels.Magic ?? 1})
+          </span>
+        </span>
+        <button onClick={clear} className="text-parchment/40 hover:text-osrs-red" title="Forget character">
+          ✕
+        </button>
+      </span>
+    );
+  }
+
+  return (
+    <span className="flex items-center gap-1.5 text-xs">
+      <input
+        type="text"
+        value={name}
+        maxLength={12}
+        placeholder="Your RSN…"
+        aria-label="RuneScape name"
+        onChange={(e) => setName(e.target.value)}
+        onKeyDown={(e) => e.key === 'Enter' && void run()}
+        className="w-32 rounded border border-panel-border bg-ink px-2 py-1 text-xs text-parchment outline-none focus:border-gold"
+      />
+      <button
+        onClick={() => void run()}
+        disabled={busy || name.trim() === ''}
+        className="rounded bg-gold px-2.5 py-1 text-xs font-semibold text-ink enabled:hover:brightness-110 disabled:opacity-30"
+      >
+        {busy ? 'Importing…' : 'Import character'}
+      </button>
+      {error && <span className="text-osrs-red">{error}</span>}
+    </span>
+  );
+}
+
 export default function ToolsPage() {
   const config = useAppConfig();
   const { data, isPending } = useItems(config.clientRefreshSeconds);
   const { entitlements } = useTier();
+  const { character } = useCharacter();
   const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
   const tool = (params.get('tool') as Tool) || 'alch';
   const [minVolume, setMinVolume] = useState(10);
+  const [onlyMine, setOnlyMine] = useState(false);
 
   const alchRows = useMemo(
     () => (data && tool === 'alch' ? computeAlchRows(data.items, config).filter((r) => r.item.volume1h >= minVolume) : []),
@@ -41,9 +113,23 @@ export default function ToolsPage() {
     () => (data && tool === 'decant' ? computeDecantRows(data.items, config).filter((r) => r.volume1h >= minVolume) : []),
     [data, config, tool, minVolume],
   );
+  const setRows = useMemo(
+    () => (data && tool === 'sets' ? computeSetRows(data.items, config).filter((r) => r.volume1h >= minVolume) : []),
+    [data, config, tool, minVolume],
+  );
+  const methodRows = useMemo(() => {
+    if (!data || tool !== 'methods') return [];
+    let rows = computeMethodRows(data.items, config, character?.levels).filter(
+      (r) => r.volume1h >= minVolume,
+    );
+    if (onlyMine && character) rows = rows.filter((r) => r.meetsReqs);
+    return rows;
+  }, [data, config, tool, minVolume, character, onlyMine]);
 
   const visibleAlch = entitlements.alchRows === null ? alchRows : alchRows.slice(0, entitlements.alchRows);
   const visibleDecant = entitlements.decantRows === null ? decantRows : decantRows.slice(0, entitlements.decantRows);
+  const visibleSets = entitlements.setRows === null ? setRows : setRows.slice(0, entitlements.setRows);
+  const visibleMethods = entitlements.methodRows === null ? methodRows : methodRows.slice(0, entitlements.methodRows);
 
   const toolButton = (value: Tool, label: string) => (
     <button
@@ -68,6 +154,8 @@ export default function ToolsPage() {
       <div className="flex flex-wrap items-center gap-2">
         {toolButton('alch', '🔮 High alchemy')}
         {toolButton('decant', '🧪 Decanting')}
+        {toolButton('sets', '🛡️ Set combining')}
+        {toolButton('methods', '😴 AFK methods')}
         <label className="ml-auto flex items-center gap-2 text-xs">
           <span className="uppercase tracking-wide opacity-60">Min vol/1h</span>
           <input
@@ -136,7 +224,7 @@ export default function ToolsPage() {
           </section>
           <TeaserStrip hidden={alchRows.length - visibleAlch.length} what="alchable items, ranked by profit" />
         </>
-      ) : (
+      ) : tool === 'decant' ? (
         <>
           <p className="text-xs opacity-50">
             doses are conserved when decanting — buy the cheap per-dose form, decant (Bob
@@ -180,6 +268,154 @@ export default function ToolsPage() {
             )}
           </section>
           <TeaserStrip hidden={decantRows.length - visibleDecant.length} what="potion families, ranked by margin" />
+        </>
+      ) : tool === 'sets' ? (
+        <>
+          <p className="text-xs opacity-50">
+            GE clerks exchange sets ↔ pieces for free (right-click “Sets”) — any price gap is
+            arbitrage · margins shown after tax · throughput bound by the least liquid leg
+          </p>
+          <section className="overflow-auto rounded border border-panel-border bg-panel">
+            <table className="w-full min-w-[860px] border-collapse text-sm">
+              <thead className="bg-panel-light">
+                <tr>
+                  <th className={th(false)}>Set</th>
+                  <th className={th(false)}>Best move</th>
+                  <th className={th(true)}>Combine margin</th>
+                  <th className={th(true)}>Split margin</th>
+                  <th className={th(true)}>Pieces</th>
+                  <th className={th(true)}>Vol/1h (min leg)</th>
+                </tr>
+              </thead>
+              <tbody>
+                {visibleSets.map((r) => (
+                  <tr
+                    key={r.def.setId}
+                    onClick={() => navigate(`/item/${r.def.setId}`)}
+                    className="cursor-pointer border-t border-panel-border/50 hover:bg-panel-light"
+                  >
+                    <td className={td}>
+                      <span className="flex items-center gap-2">
+                        <ItemIcon icon={r.set.icon} name={r.set.name} />
+                        {r.set.name}
+                      </span>
+                    </td>
+                    <td className={td}>
+                      <span
+                        className={`rounded px-1.5 py-0.5 text-[11px] uppercase tracking-wide ${
+                          r.best === 'combine'
+                            ? 'bg-emerald-900/60 text-emerald-300'
+                            : 'bg-sky-900/60 text-sky-300'
+                        }`}
+                        title={
+                          r.best === 'combine'
+                            ? 'Buy the pieces, exchange to a set, sell the set'
+                            : 'Buy the set, exchange to pieces, sell the pieces'
+                        }
+                      >
+                        {r.best}
+                      </span>
+                    </td>
+                    <td className={`${td} text-right`}><GpText amount={r.combineMargin} signed /></td>
+                    <td className={`${td} text-right`}><GpText amount={r.splitMargin} signed /></td>
+                    <td className={`${td} text-right tabular-nums opacity-70`}>{r.def.pieces.length}</td>
+                    <td className={`${td} text-right tabular-nums opacity-80`}>
+                      {r.volume1h.toLocaleString('en-US')}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {visibleSets.length === 0 && (
+              <div className="p-10 text-center text-sm opacity-60">No priced sets at this volume floor.</div>
+            )}
+          </section>
+          <TeaserStrip hidden={setRows.length - visibleSets.length} what="item sets, ranked by margin" />
+        </>
+      ) : (
+        <>
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+            <CharacterImport />
+            {character && (
+              <label className="flex cursor-pointer items-center gap-1.5 text-xs">
+                <input
+                  type="checkbox"
+                  checked={onlyMine}
+                  onChange={(e) => setOnlyMine(e.target.checked)}
+                  className="accent-gold"
+                />
+                <span>Only methods I can do</span>
+              </label>
+            )}
+          </div>
+          <p className="text-xs opacity-50">
+            buy inputs on the GE, apply a skill, sell outputs — profit is live, post-tax ·
+            rates are wiki-guide estimates · import your character to check requirements
+          </p>
+          <section className="overflow-auto rounded border border-panel-border bg-panel">
+            <table className="w-full min-w-[920px] border-collapse text-sm">
+              <thead className="bg-panel-light">
+                <tr>
+                  <th className={th(false)}>Method</th>
+                  <th className={th(false)}>Needs</th>
+                  <th className={th(false)}>Attention</th>
+                  <th className={th(true)}>Cost/action</th>
+                  <th className={th(true)}>Profit/action</th>
+                  <th className={th(true)}>gp/hour</th>
+                  <th className={th(true)}>Vol/1h (min)</th>
+                </tr>
+              </thead>
+              <tbody>
+                {visibleMethods.map((r) => {
+                  const [label, badgeCls] = INTENSITY_BADGE[r.def.intensity];
+                  return (
+                    <tr key={r.def.id} className="border-t border-panel-border/50" title={r.def.notes}>
+                      <td className={td}>{r.def.name}</td>
+                      <td className={td}>
+                        {r.def.requirements.length === 0 ? (
+                          <span className="opacity-40">—</span>
+                        ) : (
+                          r.def.requirements.map((req) => (
+                            <span
+                              key={req.skill}
+                              className={`mr-1 rounded px-1.5 py-0.5 text-[11px] ${
+                                r.meetsReqs === null
+                                  ? 'bg-panel-light text-parchment/70'
+                                  : r.meetsReqs
+                                    ? 'bg-emerald-900/60 text-emerald-300'
+                                    : 'bg-red-900/50 text-red-300'
+                              }`}
+                            >
+                              {req.skill} {req.level}
+                            </span>
+                          ))
+                        )}
+                      </td>
+                      <td className={td}>
+                        <span className={`rounded px-1.5 py-0.5 text-[11px] uppercase tracking-wide ${badgeCls}`}>
+                          {label}
+                        </span>
+                      </td>
+                      <td className={`${td} text-right`}><GpText amount={Math.round(r.costPerAction)} /></td>
+                      <td className={`${td} text-right`}><GpText amount={Math.round(r.profitPerAction)} signed /></td>
+                      <td className={`${td} text-right`}><GpText amount={Math.round(r.gpPerHour)} signed /></td>
+                      <td className={`${td} text-right tabular-nums opacity-80`}>
+                        {r.volume1h.toLocaleString('en-US')}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+            {visibleMethods.length === 0 && (
+              <div className="p-10 text-center text-sm opacity-60">
+                {onlyMine
+                  ? 'No methods match your levels at this volume floor.'
+                  : 'No methods at this volume floor.'}
+              </div>
+            )}
+          </section>
+          <TeaserStrip hidden={methodRows.length - visibleMethods.length} what="methods, ranked by gp/hour" />
         </>
       )}
     </div>

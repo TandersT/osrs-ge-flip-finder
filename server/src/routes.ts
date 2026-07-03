@@ -28,6 +28,44 @@ export function registerApiRoutes(app: FastifyInstance): void {
 
   app.get('/api/longterm', async () => getLongterm());
 
+  // Official OSRS hiscores proxy (no CORS upstream): validated + cached 10 min.
+  app.get<{ Querystring: { player?: string } }>('/api/hiscores', async (req, reply) => {
+    const player = (req.query.player ?? '').trim();
+    if (!/^[\w\- ]{1,12}$/.test(player)) {
+      return reply.code(400).send({ error: 'player must be 1-12 word characters' });
+    }
+    try {
+      const hit = await wikiCache.get(
+        `hiscores:${player.toLowerCase()}`,
+        10 * 60 * 1000,
+        async () => {
+          const res = await fetch(
+            `https://secure.runescape.com/m=hiscore_oldschool/index_lite.json?player=${encodeURIComponent(player)}`,
+            { headers: { 'User-Agent': config.userAgent }, signal: AbortSignal.timeout(15_000) },
+          );
+          if (res.status === 404) return { notFound: true as const };
+          if (!res.ok) throw new Error(`hiscores responded ${res.status}`);
+          const body = (await res.json()) as {
+            name: string;
+            skills: { name: string; level: number }[];
+          };
+          const levels: Record<string, number> = {};
+          for (const s of body.skills) {
+            if (s.name !== 'Overall') levels[s.name] = Math.max(1, s.level);
+          }
+          return { notFound: false as const, name: body.name, levels };
+        },
+      );
+      if (hit.value.notFound) {
+        return reply.code(404).send({ error: 'Player not found on the hiscores' });
+      }
+      return { name: hit.value.name, levels: hit.value.levels };
+    } catch (err) {
+      app.log.error(err, 'hiscores fetch failed');
+      return reply.code(502).send({ error: 'Hiscores unavailable' });
+    }
+  });
+
   app.get<{ Querystring: { id?: string; timestep?: string } }>(
     '/api/timeseries',
     async (req, reply) => {

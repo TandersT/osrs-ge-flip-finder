@@ -81,5 +81,8 @@ the Stripe follow-up plan. Until then `/premium` accepts the dev unlock code.
   `upstreamStale`; the UI shows an amber banner.
 - **Tax/margin math lives once** in `shared/` and is unit-tested there (GE tax: 2%
   floor-per-item, 5m cap, sub-50gp free, ~45 exempt items seeded from the wiki category).
+- `/tools` bundles four money-making screeners (high-alch, decanting, set combining,
+  AFK processing methods with hiscores character import) — set components are generated
+  from the wiki (`scripts/generate-item-sets.mjs`), methods are curated data.
 - The long-term screener fetches 24h timeseries for the ~250 most liquid items with a
   throttled worker pool and caches the screen for 12h (see `DECISIONS.md`).

@@ -29,6 +29,10 @@ export interface Entitlements {
   alchRows: number | null;
   /** Rows visible in the decanting screener; null = all. */
   decantRows: number | null;
+  /** Rows visible in the set-combining screener; null = all. */
+  setRows: number | null;
+  /** Rows visible in the AFK-methods screener; null = all. */
+  methodRows: number | null;
   /** Budget portfolio allocator on the starter page. */
   allocator: boolean;
   /** Per-item and monthly analytics on the flip log. */
@@ -49,6 +53,8 @@ export const ENTITLEMENTS: Record<Tier, Entitlements> = {
     advancedCharts: false,
     alchRows: 5,
     decantRows: 5,
+    setRows: 5,
+    methodRows: 5,
     allocator: false,
     logAnalytics: false,
     savedFiltersMax: 1,
@@ -64,6 +70,8 @@ export const ENTITLEMENTS: Record<Tier, Entitlements> = {
     advancedCharts: true,
     alchRows: null,
     decantRows: null,
+    setRows: null,
+    methodRows: null,
     allocator: true,
     logAnalytics: true,
     savedFiltersMax: null,

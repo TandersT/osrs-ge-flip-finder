@@ -261,8 +261,9 @@ export default function FaqPage() {
             charts, the starter guide. <Link to="/premium" className="text-gold underline">Premium</Link>{' '}
             removes the scale limits (watchlist, flip log, alerts, saved views, CSV
             export/import) and unlocks the analytics: the full long-term screener, a year of
-            price history, margin-history and hourly-activity charts, the complete high-alch
-            and decanting screeners, and the budget portfolio allocator. The underlying price
+            price history, margin-history and hourly-activity charts, the complete money-making
+            tools (high-alch, decanting, set combining, AFK methods), and the budget
+            portfolio allocator. The underlying price
             data is the community&apos;s and stays free for everyone.
           </p>
         </Q>

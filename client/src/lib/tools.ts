@@ -1,5 +1,7 @@
 import type { AppConfig, ItemSnapshot } from '@osrs-flip/shared';
 import { geTax } from '@osrs-flip/shared';
+import { ITEM_SETS, type ItemSetDef } from '../data/itemSets';
+import { METHODS, type MethodDef } from '../data/methods';
 
 export const NATURE_RUNE_ID = 561;
 /** Casts/hour for High Level Alchemy (standard rate). */
@@ -47,6 +49,141 @@ export interface DecantRow {
   marginPer4: number;
   /** Hourly volume of the LESS liquid side (the realistic constraint). */
   volume1h: number;
+}
+
+export interface SetRow {
+  def: ItemSetDef;
+  set: ItemSnapshot;
+  /** Buy the pieces, exchange at a GE clerk, sell the set (post-tax). */
+  combineMargin: number;
+  /** Buy the set, exchange, sell the pieces (post-tax each). */
+  splitMargin: number;
+  best: 'combine' | 'split';
+  bestMargin: number;
+  /** Hourly volume of the least liquid leg — the realistic constraint. */
+  volume1h: number;
+}
+
+/**
+ * GE clerks exchange sets <-> pieces for free, so any price gap between a set
+ * and the sum of its pieces is arbitrage. Both directions computed per set.
+ */
+export function computeSetRows(
+  items: ItemSnapshot[],
+  cfg: AppConfig,
+  sets: ItemSetDef[] = ITEM_SETS,
+): SetRow[] {
+  const byId = new Map(items.map((i) => [i.id, i]));
+  const rows: SetRow[] = [];
+
+  for (const def of sets) {
+    const set = byId.get(def.setId);
+    const pieces = def.pieces.map((p) => byId.get(p.id));
+    if (!set || pieces.some((p) => p === undefined)) continue;
+    if (set.low === null || set.high === null) continue;
+    if (pieces.some((p) => p!.low === null || p!.high === null)) continue;
+
+    const setBuy = set.low + cfg.offerOffset;
+    const setSell = Math.max(1, set.high - cfg.offerOffset);
+    let piecesBuy = 0;
+    let piecesSellNet = 0;
+    let minVolume = set.volume1h;
+    for (const p of pieces as ItemSnapshot[]) {
+      // non-null: the some() guard above already rejected null-priced pieces
+      const pieceSell = Math.max(1, p.high! - cfg.offerOffset);
+      piecesBuy += p.low! + cfg.offerOffset;
+      piecesSellNet += pieceSell - geTax(p.taxExempt, pieceSell);
+      minVolume = Math.min(minVolume, p.volume1h);
+    }
+
+    const combineMargin = setSell - geTax(set.taxExempt, setSell) - piecesBuy;
+    const splitMargin = piecesSellNet - setBuy;
+    const best = combineMargin >= splitMargin ? 'combine' : 'split';
+    rows.push({
+      def,
+      set,
+      combineMargin,
+      splitMargin,
+      best,
+      bestMargin: Math.max(combineMargin, splitMargin),
+      volume1h: minVolume,
+    });
+  }
+  rows.sort((a, b) => b.bestMargin - a.bestMargin);
+  return rows;
+}
+
+export interface MethodRow {
+  def: MethodDef;
+  /** Σ inputs at buy price + coin costs, per action. */
+  costPerAction: number;
+  /** Σ outputs at sell price minus tax, per action. */
+  revenuePerAction: number;
+  profitPerAction: number;
+  gpPerHour: number;
+  /** Hourly volume of the least liquid input/output. */
+  volume1h: number;
+  /** null when no character is imported. */
+  meetsReqs: boolean | null;
+}
+
+/**
+ * Live profit for each curated processing method; `levels` (from an imported
+ * character) marks which methods the player can actually do.
+ */
+export function computeMethodRows(
+  items: ItemSnapshot[],
+  cfg: AppConfig,
+  levels?: Record<string, number>,
+  methods: MethodDef[] = METHODS,
+): MethodRow[] {
+  const byName = new Map(items.map((i) => [i.name, i]));
+  const rows: MethodRow[] = [];
+
+  for (const def of methods) {
+    let cost = def.coinsPerAction ?? 0;
+    let revenue = 0;
+    let minVolume = Infinity;
+    let resolvable = true;
+
+    for (const input of def.inputs) {
+      const item = byName.get(input.name);
+      if (!item || item.low === null) {
+        resolvable = false;
+        break;
+      }
+      cost += (item.low + cfg.offerOffset) * input.qty;
+      minVolume = Math.min(minVolume, item.volume1h);
+    }
+    if (resolvable) {
+      for (const output of def.outputs) {
+        const item = byName.get(output.name);
+        if (!item || item.high === null) {
+          resolvable = false;
+          break;
+        }
+        const sellAt = Math.max(1, item.high - cfg.offerOffset);
+        revenue += (sellAt - geTax(item.taxExempt, sellAt)) * output.qty;
+        minVolume = Math.min(minVolume, item.volume1h);
+      }
+    }
+    if (!resolvable) continue;
+
+    const profitPerAction = revenue - cost;
+    rows.push({
+      def,
+      costPerAction: cost,
+      revenuePerAction: revenue,
+      profitPerAction,
+      gpPerHour: profitPerAction * def.actionsPerHour,
+      volume1h: minVolume === Infinity ? 0 : minVolume,
+      meetsReqs: levels
+        ? def.requirements.every((r) => (levels[r.skill] ?? 1) >= r.level)
+        : null,
+    });
+  }
+  rows.sort((a, b) => b.gpPerHour - a.gpPerHour);
+  return rows;
 }
 
 const DOSE_RE = /^(.+)\((\d)\)$/;

@@ -236,6 +236,27 @@ free); **premium sells scale + long-horizon analytics**:
   account-less license keys validated server-side (SQLite), Phase 2 accounts only if
   cross-device sync demands it. 5 new e2e specs cover caps, teaser, locks, unlock, bad codes.
 
+## Post-completion: set combining, AFK methods, character import (2026-07-03)
+
+- **Set combining** (`/tools?tool=sets`): GE clerks exchange sets <-> pieces for free, so
+  any price gap is arbitrage. Component data is GENERATED (`scripts/generate-item-sets.mjs`)
+  from each set page's `==Components==` `{{CostLine|...}}` wikitext — all 124 tradeable
+  sets resolved, zero hand-curated. Both directions computed post-tax; throughput bound by
+  the least liquid leg. Live check passed the smell test: Barrows sets combine-positive,
+  cheap metal sets flip to "split".
+- **AFK methods** (`/tools?tool=methods`): 27 curated processing methods (herb cleaning,
+  potions, cooking, fletching, gems/battlestaves/glass, tanning, sawmill, Blast Furnace
+  runite, Superglass, orb charging) as data (`client/src/data/methods.ts`): inputs/outputs
+  by GE name + qty, optional coin fees, skill requirements, intensity rating, and
+  actions/hour marked as wiki-guide ESTIMATES. Profit computed live, post-tax; methods with
+  unpriced items are skipped. Rates sanity-checked against the wiki's Processing guide.
+- **Character import**: official OSRS hiscores (`index_lite.json`) proxied via
+  `/api/hiscores` (name regex-validated, 10-min TtlCache, 404 mapped) since Jagex sends no
+  CORS headers. Stored in localStorage; requirement chips go green/red and an "only methods
+  I can do" filter appears. Import is free-tier (it's a hook); both new screeners teaser at
+  top-5 rows like alch/decant (new entitlements setRows/methodRows).
+- e2e mocks `/api/hiscores` for determinism (live route verified by hand incl. 404 path).
+
 ## Post-completion: premium feature expansion (2026-07-03)
 
 All planned premium tiers built (S, A, and the account-less subset of B):
