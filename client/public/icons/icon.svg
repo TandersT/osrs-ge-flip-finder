@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="96" fill="#13110d"/>
+  <circle cx="256" cy="256" r="150" fill="#ffb83f" stroke="#8a5a00" stroke-width="14"/>
+  <circle cx="256" cy="256" r="112" fill="none" stroke="#8a5a00" stroke-width="8" opacity="0.6"/>
+  <text x="256" y="298" font-family="Georgia, serif" font-size="120" font-weight="bold"
+        text-anchor="middle" fill="#3d2800">gp</text>
+  <path d="M 216 150 L 244 122 L 268 146" fill="none" stroke="#fff3d6" stroke-width="12"
+        stroke-linecap="round" stroke-linejoin="round" opacity="0.85"/>
+</svg>

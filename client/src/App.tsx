@@ -27,13 +27,13 @@ export default function App() {
   return (
     <div className="mx-auto flex min-h-screen max-w-[1500px] flex-col gap-4 px-4 py-4">
       <header className="flex flex-wrap items-center gap-4">
-        <h1 className="text-xl font-bold text-gold">
+        <span className="text-xl font-bold text-gold">
           💰 GE Flip Finder
           <span className="ml-2 hidden text-xs font-normal opacity-50 sm:inline">
             Old School RuneScape
           </span>
-        </h1>
-        <nav className="flex flex-wrap gap-1">
+        </span>
+        <nav className="flex max-w-full gap-1 overflow-x-auto whitespace-nowrap [scrollbar-width:none]">
           <Tab to="/" label="Flip Finder" />
           <Tab to="/starter" label="Get Started" />
           <Tab to="/longterm" label="Long-term" />

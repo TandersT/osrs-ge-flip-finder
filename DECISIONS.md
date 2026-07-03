@@ -170,6 +170,29 @@ Creative-license pass ("anything else relevant, be creative"):
 - **`/` keyboard shortcut** focuses the finder search (skipped while typing).
 - **Meta/OG tags** + theme-color for link sharing.
 
+## Post-completion: polish pass 2 (2026-07-03)
+
+Four verified batches:
+
+1. **Quick wins**: numeric columns right-aligned everywhere; header tooltips + FAQ pointer;
+   wiki link on item detail; `@fastify/compress` (items JSON 1.3MB → 199KB) + immutable
+   cache headers for hashed assets / no-cache for index.html; `aria-sort`; skeletons
+   respect `prefers-reduced-motion`.
+2. **Flip Log open positions**: v2 schema (nullable sell/tax/profit + `soldAt`, v1 migrates
+   on load; `taxExempt` stored per entry so completion can compute tax later). Open
+   positions table shows live unrealized P&L and completes inline. gp/hour derives only
+   from closed flips with real buy→sell durations (same-timestamp legacy entries excluded).
+3. **Live UX**: buy/sell cells flash green/red on refresh deltas (prev-price map threaded
+   into buildRows; spans re-keyed by value so the CSS animation restarts; reduced-motion
+   disables). Chart gains dashed live-price ReferenceLines + 1m/3m/1y range chips on the
+   24h series (defaults to 3m — a year squashed too much). ↑/↓/Enter/Escape row navigation.
+4. **Mobile + PWA**: below 640px the finder renders virtualised cards (margin/ROI headline,
+   buy→sell, vol/age/flags) with a sort dropdown, since card layouts have no sortable
+   headers; sliders collapse behind a "Filters" disclosure; nav scrolls horizontally.
+   PWA manifest + PNG icons rendered from an in-repo SVG via headless Chromium (no image
+   tooling dependency). No service worker yet — installability only.
+   Also: the site brand is no longer an `<h1>` (one h1 per page).
+
 ## Post-completion: published to GitHub (2026-07-02)
 
 Stefan confirmed the intended account was `TandersT` (the `github-tanderst` SSH alias's

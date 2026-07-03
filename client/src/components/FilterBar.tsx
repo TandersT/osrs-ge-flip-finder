@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { formatGpCompact } from '@osrs-flip/shared';
 import { FILTER_PRESETS, EMPTY_FILTERS, type Filters, type Membership } from '../lib/rows';
 import { SliderInput } from './SliderInput';
@@ -38,6 +38,9 @@ export function FilterBar({
 }) {
   const set = <K extends keyof Filters>(key: K, value: Filters[K]) =>
     onChange({ ...filters, [key]: value });
+
+  // Sliders/toggles collapse behind a "Filters" button on phones
+  const [expanded, setExpanded] = useState(false);
 
   // "/" jumps to search from anywhere on the page (unless already typing)
   const searchRef = useRef<HTMLInputElement>(null);
@@ -92,7 +95,16 @@ export function FilterBar({
             onChange={(e) => set('search', e.target.value)}
           />
         </label>
+        <button
+          onClick={() => setExpanded((v) => !v)}
+          className="rounded border border-panel-border px-2.5 py-1.5 text-xs hover:border-gold hover:text-gold sm:hidden"
+        >
+          Filters {expanded ? '▴' : '▾'}
+        </button>
 
+        <div
+          className={`${expanded ? 'flex' : 'hidden'} w-full flex-wrap items-end gap-x-5 gap-y-3 sm:flex sm:w-auto`}
+        >
         <SliderInput
           label="Min margin"
           title="Post-tax profit per item, in gp"
@@ -174,6 +186,7 @@ export function FilterBar({
             onChange={(v) => set('hideRisky', v)}
             title="Hide thin-volume and unstable-spread items"
           />
+        </div>
         </div>
       </div>
     </div>

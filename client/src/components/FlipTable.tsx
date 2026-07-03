@@ -11,6 +11,7 @@ import { useVirtualizer } from '@tanstack/react-virtual';
 import { useNavigate } from 'react-router-dom';
 import { formatAge } from '@osrs-flip/shared';
 import type { FlipRow } from '../lib/rows';
+import { useMediaQuery } from '../lib/useMediaQuery';
 import { GpText } from './GpText';
 import { ItemIcon } from './ItemIcon';
 
@@ -55,6 +56,83 @@ export interface TableContext {
   onToggleWatch: (row: FlipRow) => void;
   /** When set (watchlist view), adds a "Since added" column: id -> fractional change. */
   sinceAdded?: Map<number, number | null>;
+}
+
+/** Sort choices exposed on the phone layout (cards have no clickable headers). */
+const MOBILE_SORTS: { id: string; label: string }[] = [
+  { id: 'profitPer4h', label: 'Profit / 4h' },
+  { id: 'margin', label: 'Margin' },
+  { id: 'roi', label: 'ROI' },
+  { id: 'buyAt', label: 'Buy price' },
+  { id: 'volume1h', label: 'Volume (1h)' },
+  { id: 'dailyVolume', label: 'Volume (day)' },
+  { id: 'age', label: 'Data age' },
+  { id: 'name', label: 'Name' },
+];
+
+/** One item as a phone-sized card. */
+function FlipCard({
+  row,
+  context,
+  onOpen,
+}: {
+  row: FlipRow;
+  context: TableContext;
+  onOpen: () => void;
+}) {
+  const watched = context.isWatched(row.id);
+  const flip = row.flip;
+  return (
+    <button
+      onClick={onOpen}
+      className="flex w-full flex-col gap-1 border-t border-panel-border/50 px-3 py-2 text-left text-sm hover:bg-panel-light"
+    >
+      <span className="flex w-full items-center gap-2">
+        <ItemIcon icon={row.icon} name={row.name} size={22} />
+        <span className="truncate font-medium">{row.name}</span>
+        {row.taxExempt && (
+          <span className="rounded bg-emerald-900/60 px-1 text-[10px] uppercase text-emerald-300">
+            exempt
+          </span>
+        )}
+        <span
+          onClick={(e) => {
+            e.stopPropagation();
+            context.onToggleWatch(row);
+          }}
+          className={`ml-auto px-1 text-lg leading-none ${watched ? 'text-gold' : 'text-parchment/30'}`}
+        >
+          {watched ? '★' : '☆'}
+        </span>
+      </span>
+      <span className="flex w-full items-baseline gap-3">
+        <span className="text-base">
+          <GpText amount={flip?.marginPerItem ?? null} signed />
+        </span>
+        {flip && (
+          <span className={`text-xs tabular-nums ${flip.roi < 0 ? 'text-osrs-red' : 'text-osrs-green'}`}>
+            {(flip.roi * 100).toFixed(1)}% ROI
+          </span>
+        )}
+        <span className="ml-auto text-xs opacity-60">
+          <GpText amount={flip?.profitPer4h ?? null} signed /> / 4h
+        </span>
+      </span>
+      <span className="flex w-full items-center gap-2 text-xs opacity-70">
+        <GpText amount={flip?.buyAt ?? null} /> → <GpText amount={flip?.sellAt ?? null} />
+        <span className="ml-auto flex items-center gap-1">
+          vol {row.volume1h.toLocaleString('en-US')}/h ·{' '}
+          {formatAge(
+            row.ageSeconds === null ? null : context.nowSec - row.ageSeconds,
+            context.nowSec * 1000,
+          )}
+          {row.isStale && <span className="text-osrs-red">stale</span>}
+          {row.isThin && <span className="text-red-300">thin</span>}
+          {row.isUnstable && <span className="text-orange-300">unstable</span>}
+        </span>
+      </span>
+    </button>
+  );
 }
 
 export function buildColumns({ nowSec, isWatched, onToggleWatch, sinceAdded }: TableContext) {
@@ -256,6 +334,7 @@ interface FlipTableProps {
 export function FlipTable({ rows, context, sorting, onSortingChange }: FlipTableProps) {
   const navigate = useNavigate();
   const parentRef = useRef<HTMLDivElement>(null);
+  const isMobile = useMediaQuery('(max-width: 639px)');
 
   const columns = useMemo(() => buildColumns(context), [context]);
   const table = useReactTable({
@@ -271,9 +350,13 @@ export function FlipTable({ rows, context, sorting, onSortingChange }: FlipTable
   const virtualizer = useVirtualizer({
     count: tableRows.length,
     getScrollElement: () => parentRef.current,
-    estimateSize: () => 40,
+    estimateSize: () => (isMobile ? 96 : 40),
     overscan: 12,
   });
+  useEffect(() => {
+    // row height changes when the layout flips between table and cards
+    virtualizer.measure();
+  }, [isMobile, virtualizer]);
 
   // ↑/↓ walk the (sorted, filtered) rows, Enter opens, Escape clears
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
@@ -310,6 +393,61 @@ export function FlipTable({ rows, context, sorting, onSortingChange }: FlipTable
     virtualItems.length > 0
       ? virtualizer.getTotalSize() - virtualItems[virtualItems.length - 1]!.end
       : 0;
+
+  if (isMobile) {
+    const sort = sorting[0] ?? { id: 'profitPer4h', desc: true };
+    return (
+      <div className="flex flex-col gap-2">
+        <div className="flex items-center gap-2">
+          <label className="flex flex-1 items-center gap-2 text-xs">
+            <span className="uppercase tracking-wide opacity-60">Sort by</span>
+            <select
+              value={sort.id}
+              onChange={(e) => onSortingChange([{ id: e.target.value, desc: sort.desc }])}
+              className="flex-1 rounded border border-panel-border bg-ink px-2 py-1.5 text-sm text-parchment outline-none focus:border-gold"
+            >
+              {MOBILE_SORTS.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <button
+            onClick={() => onSortingChange([{ id: sort.id, desc: !sort.desc }])}
+            title={sort.desc ? 'Highest first' : 'Lowest first'}
+            className="rounded border border-panel-border px-2.5 py-1.5 text-sm hover:border-gold hover:text-gold"
+          >
+            {sort.desc ? '▼' : '▲'}
+          </button>
+        </div>
+        <div
+          ref={parentRef}
+          className="overflow-auto rounded border border-panel-border bg-panel"
+          style={{ height: 'calc(100vh - 260px)', minHeight: 300 }}
+        >
+          <div style={{ height: paddingTop }} />
+          {virtualItems.map((vi) => {
+            const row = tableRows[vi.index]!;
+            return (
+              <FlipCard
+                key={row.original.id}
+                row={row.original}
+                context={context}
+                onOpen={() => navigate(`/item/${row.original.id}`)}
+              />
+            );
+          })}
+          <div style={{ height: paddingBottom }} />
+          {rows.length === 0 && (
+            <div className="p-10 text-center text-sm opacity-60">
+              No items match the current filters.
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div ref={parentRef} className="overflow-auto rounded border border-panel-border bg-panel"

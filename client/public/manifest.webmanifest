@@ -1,0 +1,14 @@
+{
+  "name": "GE Flip Finder — OSRS",
+  "short_name": "Flip Finder",
+  "description": "Find profitable Grand Exchange flips in Old School RuneScape: live prices, post-tax margins, buy limits, volumes and a flip log.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#13110d",
+  "theme_color": "#13110d",
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
