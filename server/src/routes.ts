@@ -1,8 +1,10 @@
 import type { FastifyInstance } from 'fastify';
-import type { AppConfig, Timestep } from '@osrs-flip/shared';
+import type { AppConfig, DealsResponse, Timestep } from '@osrs-flip/shared';
+import { buildRows, computeMethodRows } from '@osrs-flip/shared';
 import { config } from './config.js';
 import { getItems } from './items.js';
 import { getLongterm } from './longterm.js';
+import { rankDeals } from './score.js';
 import { getTimeseries, wikiCache } from './wiki.js';
 
 const TIMESTEPS: ReadonlySet<string> = new Set(['5m', '1h', '6h', '24h']);
@@ -27,6 +29,27 @@ export function registerApiRoutes(app: FastifyInstance): void {
   });
 
   app.get('/api/longterm', async () => getLongterm());
+
+  // The Deal Score is computed HERE and only the result leaves the process —
+  // the formula is a trade secret (see server/src/score.ts).
+  app.get('/api/deals', async (_req, reply): Promise<DealsResponse | void> => {
+    try {
+      const { items } = await getItems();
+      const appConfig: AppConfig = {
+        captureRate: config.captureRate,
+        offerOffset: config.offerOffset,
+        clientRefreshSeconds: config.clientRefreshSeconds,
+        staleAfterSeconds: config.staleAfterSeconds,
+      };
+      const nowSec = Math.floor(Date.now() / 1000);
+      const flips = buildRows(items, appConfig, nowSec);
+      const methods = computeMethodRows(items, appConfig);
+      return { deals: rankDeals(flips, methods), scoredAt: nowSec };
+    } catch (err) {
+      app.log.error(err, 'deals scoring failed');
+      return reply.code(502).send({ error: 'Upstream price API unavailable' });
+    }
+  });
 
   // Official OSRS hiscores proxy (no CORS upstream): validated + cached 10 min.
   app.get<{ Querystring: { player?: string } }>('/api/hiscores', async (req, reply) => {

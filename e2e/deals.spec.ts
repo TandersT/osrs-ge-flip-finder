@@ -26,10 +26,13 @@ test('premium: full ranking mixes flips and methods, sorted by score', async ({ 
   expect(Math.min(...scores)).toBeGreaterThanOrEqual(1);
   expect(scores).toEqual([...scores].sort((a, b) => b - a));
 
-  // breakdown tooltip on the score cell
-  const title = await page.locator('tbody td[title*="liquidity"]').first().getAttribute('title');
-  expect(title).toContain('effort');
-  expect(title).toContain('capital');
+  // TRADE SECRET: the API must not leak factors, and no tooltip shows them
+  const payload = await page.evaluate(() => fetch('/api/deals').then((r) => r.text()));
+  expect(payload).not.toContain('breakdown');
+  expect(payload).not.toContain('consistency');
+  expect(await page.locator('td[title*="liquidity"]').count()).toBe(0);
+  // …but qualitative hints are allowed
+  expect(payload).toContain('hints');
 });
 
 test('capital cap filters expensive deals', async ({ page }) => {

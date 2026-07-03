@@ -5,3 +5,6 @@ export * from './flip.js';
 export * from './format.js';
 export * from './stats.js';
 export * from './tiers.js';
+export * from './rows.js';
+export * from './methods.js';
+export * from './dealTypes.js';

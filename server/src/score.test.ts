@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import type { FlipRow } from './rows';
-import type { MethodRow } from './tools';
-import { flipConsistency, logRamp, rankDeals, scoreFlip, scoreMethod } from './score';
+import type { FlipRow, MethodRow } from '@osrs-flip/shared';
+import { flipConsistency, logRamp, rankDeals, scoreFlip, scoreMethod } from './score.js';
 
 function flipRow(over: Partial<FlipRow> = {}, flipOver: Partial<NonNullable<FlipRow['flip']>> = {}): FlipRow {
   return {
@@ -39,7 +38,7 @@ function methodRow(over: Partial<MethodRow> = {}): MethodRow {
       members: true,
       intensity: 'low',
       atGE: true,
-      requirements: [],
+      requirements: [{ skill: 'Herblore', level: 30 }],
       inputs: [],
       outputs: [],
       actionsPerHour: 2_000,
@@ -65,12 +64,15 @@ describe('logRamp', () => {
 });
 
 describe('scoreFlip', () => {
-  it('produces a 1-100 score with a full breakdown', () => {
+  it('produces a 1-100 score and NEVER leaks the factor breakdown', () => {
     const deal = scoreFlip(flipRow())!;
     expect(deal.score).toBeGreaterThanOrEqual(1);
     expect(deal.score).toBeLessThanOrEqual(100);
     expect(deal.kind).toBe('flip');
     expect(deal.capital).toBeCloseTo((1_001 * 800) / 4);
+    // trade secret: the payload must not contain factors or multipliers
+    expect(Object.keys(deal)).not.toContain('breakdown');
+    expect(JSON.stringify(deal)).not.toMatch(/consistency|effort|liquidity/);
   });
 
   it('rewards liquidity and punishes flags', () => {
@@ -80,14 +82,12 @@ describe('scoreFlip', () => {
 
     const clean = scoreFlip(flipRow())!;
     const flagged = scoreFlip(flipRow({ isUnstable: true }))!;
-    const stale = scoreFlip(flipRow({ isStale: true }))!;
     expect(flagged.score).toBeLessThan(clean.score);
-    expect(stale.score).toBeLessThan(clean.score);
+    expect(flagged.hints).toContain('risk flags');
   });
 
-  it('discounts very expensive positions', () => {
+  it('discounts very expensive positions and hints at it', () => {
     const cheap = scoreFlip(flipRow())!;
-    // same gp/hour but 200m in motion
     const expensive = scoreFlip(
       flipRow({ avgHighPrice1h: 210_000_000, avgLowPrice1h: 199_000_000 }, {
         buyAt: 200_000_000,
@@ -97,8 +97,8 @@ describe('scoreFlip', () => {
         gpPerHour: 400_000,
       }),
     )!;
-    expect(expensive.breakdown.capital).toBeLessThan(cheap.breakdown.capital);
     expect(expensive.score).toBeLessThan(cheap.score);
+    expect(expensive.hints).toContain('big capital at risk');
   });
 
   it('excludes losers and unfillable flips', () => {
@@ -108,33 +108,33 @@ describe('scoreFlip', () => {
   });
 
   it('consistency drops when the current spread is a blip', () => {
-    const stable = flipConsistency(flipRow()); // avg margin ≈ current margin
+    const stable = flipConsistency(flipRow());
     const blip = flipConsistency(
       flipRow({ avgHighPrice1h: 1_020, avgLowPrice1h: 1_000 }, { marginPerItem: 500 }),
     );
     expect(stable).toBeGreaterThan(0.9);
     expect(blip).toBeLessThan(0.6);
+    const blipDeal = scoreFlip(
+      flipRow({ avgHighPrice1h: 1_020, avgLowPrice1h: 1_000 }, { marginPerItem: 500 }),
+    )!;
+    expect(blipDeal.hints).toContain('spread may be a blip');
   });
 });
 
 describe('scoreMethod', () => {
-  it('penalises active time by intensity', () => {
+  it('penalises active time by intensity and carries requirements for the client', () => {
     const afk = scoreMethod(methodRow())!;
-    const clicky = scoreMethod(
-      methodRow({ def: { ...methodRow().def, intensity: 'high' } }),
-    )!;
+    const clicky = scoreMethod(methodRow({ def: { ...methodRow().def, intensity: 'high' } }))!;
     expect(afk.score).toBeGreaterThan(clicky.score);
+    expect(clicky.hints).toContain('costs your attention');
+    expect(afk.requirements).toEqual([{ skill: 'Herblore', level: 30 }]);
+    expect(afk.atGE).toBe(true);
   });
 
   it('a passive flip beats an AFK method at identical numbers', () => {
     const flip = scoreFlip(flipRow())!;
     const method = scoreMethod(methodRow())!;
     expect(flip.score).toBeGreaterThan(method.score);
-  });
-
-  it('excludes methods the imported character cannot do', () => {
-    expect(scoreMethod(methodRow({ meetsReqs: false }))).toBeNull();
-    expect(scoreMethod(methodRow({ meetsReqs: true }))).not.toBeNull();
   });
 });
 

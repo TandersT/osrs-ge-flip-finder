@@ -1,10 +1,8 @@
 import { useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
+import type { Deal, DealsResponse } from '@osrs-flip/shared';
 import { formatGpCompact } from '@osrs-flip/shared';
-import { useAppConfig, useItems } from '../lib/api';
-import { buildRows } from '../lib/rows';
-import { computeMethodRows } from '../lib/tools';
-import { describeBreakdown, rankDeals } from '../lib/score';
 import { useCharacter } from '../lib/character';
 import { useTier } from '../lib/tier';
 import { GpText } from '../components/GpText';
@@ -13,31 +11,45 @@ import { SliderInput } from '../components/SliderInput';
 import { TableSkeleton } from '../components/Skeleton';
 import { UnlockStrip } from '../components/UnlockStrip';
 
+async function fetchDeals(): Promise<DealsResponse> {
+  const res = await fetch('/api/deals');
+  if (!res.ok) throw new Error(`Request failed (${res.status})`);
+  return res.json() as Promise<DealsResponse>;
+}
+
 function scoreColour(score: number): string {
   if (score >= 70) return 'text-osrs-green';
   if (score >= 40) return 'text-gold';
   return 'text-parchment/60';
 }
 
+function meetsRequirements(deal: Deal, levels: Record<string, number> | undefined): boolean {
+  if (!levels || !deal.requirements) return true;
+  return deal.requirements.every((r) => (levels[r.skill] ?? 1) >= r.level);
+}
+
 export default function DealsPage() {
-  const config = useAppConfig();
-  const { data, isPending, isError, error } = useItems(config.clientRefreshSeconds);
+  const { data, isPending, isError, error } = useQuery({
+    queryKey: ['deals'],
+    queryFn: fetchDeals,
+    refetchInterval: 60_000,
+    staleTime: 30_000,
+  });
   const { character } = useCharacter();
   const { entitlements } = useTier();
   const navigate = useNavigate();
   const [maxCapital, setMaxCapital] = useState<number | null>(null);
   const [geOnly, setGeOnly] = useState(true);
 
-  const nowSec = useMemo(() => Math.floor(Date.now() / 1000), [data]);
   const deals = useMemo(() => {
     if (!data) return [];
-    const flips = buildRows(data.items, config, nowSec);
-    let methods = computeMethodRows(data.items, config, character?.levels);
-    if (geOnly) methods = methods.filter((m) => m.def.atGE);
-    let ranked = rankDeals(flips, methods);
-    if (maxCapital !== null) ranked = ranked.filter((d) => d.capital <= maxCapital);
-    return ranked;
-  }, [data, config, nowSec, character, geOnly, maxCapital]);
+    return data.deals.filter((d) => {
+      if (maxCapital !== null && d.capital > maxCapital) return false;
+      if (geOnly && d.kind === 'method' && d.atGE === false) return false;
+      if (!meetsRequirements(d, character?.levels)) return false;
+      return true;
+    });
+  }, [data, maxCapital, geOnly, character]);
 
   const visible = entitlements.dealRows === null ? deals.slice(0, 100) : deals.slice(0, entitlements.dealRows);
 
@@ -46,11 +58,11 @@ export default function DealsPage() {
       <header>
         <h1 className="text-2xl font-bold text-gold">Best deals right now</h1>
         <p className="mt-1 max-w-3xl text-sm opacity-70">
-          Every flip and bankstand method on one opinionated 1–100 scale: expected gp/hour,
-          discounted for shallow markets, click-time, capital at risk, risk flags and spreads
-          that weren&apos;t there an hour ago.{' '}
+          Every flip and bankstand method on one opinionated 1–100 scale — our secret sauce
+          weighs the expected gp/hour against market depth, your attention, capital at risk
+          and how trustworthy the numbers look right now.{' '}
           <Link to="/faq#deal-score" className="text-gold underline">
-            How the score works.
+            What the score means.
           </Link>
         </p>
       </header>
@@ -139,11 +151,16 @@ export default function DealsPage() {
                           >
                             {deal.kind}
                           </span>
-                          <span className="block text-xs opacity-50">{deal.detail}</span>
+                          <span className="block text-xs opacity-50">
+                            {deal.detail}
+                            {deal.hints.length > 0 && (
+                              <span className="text-amber-300/70"> · held back: {deal.hints.join(', ')}</span>
+                            )}
+                          </span>
                         </span>
                       </span>
                     </td>
-                    <td className="px-3 py-2 text-right" title={describeBreakdown(deal.breakdown)}>
+                    <td className="px-3 py-2 text-right">
                       <span className={`text-lg font-bold tabular-nums ${scoreColour(deal.score)}`}>
                         {deal.score}
                       </span>
@@ -169,8 +186,8 @@ export default function DealsPage() {
               </div>
             )}
             <p className="border-t border-panel-border/50 px-3 py-2 text-xs opacity-50">
-              Opinionated estimates, not guarantees — hover a score for its factor breakdown.
-              Method rates are wiki-guide estimates; flips assume competitive offers fill.
+              Opinionated estimates, not guarantees. Method rates are wiki-guide estimates;
+              flips assume competitive offers fill.
             </p>
           </section>
           {entitlements.dealRows !== null && deals.length > visible.length && (

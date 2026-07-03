@@ -236,6 +236,27 @@ free); **premium sells scale + long-horizon analytics**:
   account-less license keys validated server-side (SQLite), Phase 2 accounts only if
   cross-device sync demands it. 5 new e2e specs cover caps, teaser, locks, unlock, bad codes.
 
+## Post-completion: Deal Score is a trade secret (2026-07-03)
+
+Stefan wants the score formula protected; qualitative bits may be shared.
+
+- **Scoring moved server-side**: `server/src/score.ts` is the only place the formula
+  exists; `/api/deals` returns ranked `Deal`s with score + display fields only. Anything
+  shipped in the client bundle is readable by anyone, so client-side hiding would have
+  been theatre. Verified: the built bundle contains no factor names, constants or hint
+  strings (the one "shallow market" hit is the FAQ's own example).
+- To let the server score, `buildRows`/flags and `computeMethodRows`/METHODS moved from
+  client libs into `shared` (they're not secret — public wiki knowledge); client
+  `lib/rows.ts`/`lib/tools.ts` re-export them so imports didn't churn.
+- **The shareable bits**: the API emits up to two plain-language `hints` for whatever
+  drags a score down most ("shallow market", "costs your attention", "big capital at
+  risk", "risk flags", "spread may be a blip") — no numbers, generated server-side.
+- The exact-multiplier tooltip is gone; the FAQ entry now describes only WHAT is weighed,
+  not how much. Score unit tests moved to the server workspace and include a leak guard
+  (payload must not contain factor fields); e2e asserts /api/deals carries hints but no
+  breakdown. Method requirement filtering moved client-side (the server doesn't know the
+  imported character; requirements are public data included per deal).
+
 ## Post-completion: Best Deals — the GEFF Deal Score (2026-07-03)
 
 One cross-cutting 1–100 ranking (`/deals`) putting flips and bankstand methods on the same

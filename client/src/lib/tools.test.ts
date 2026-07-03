@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { ItemSnapshot } from '@osrs-flip/shared';
 import type { ItemSetDef } from '../data/itemSets';
-import type { MethodDef } from '../data/methods';
+import type { MethodDef } from '@osrs-flip/shared';
 import { computeAlchRows, computeDecantRows, computeMethodRows, computeSetRows, NATURE_RUNE_ID } from './tools';
 
 const cfg = { captureRate: 0.1, offerOffset: 1, clientRefreshSeconds: 60, staleAfterSeconds: 1800 };

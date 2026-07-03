@@ -2,7 +2,7 @@ import type { AppConfig, ItemSnapshot } from '@osrs-flip/shared';
 import { geTax } from '@osrs-flip/shared';
 import { COMBINES, type CombineDef } from '../data/combines';
 import { ITEM_SETS, type ItemSetDef } from '../data/itemSets';
-import { METHODS, type MethodDef } from '../data/methods';
+export { computeMethodRows, METHODS, type MethodDef, type MethodRow, type SkillReq } from '@osrs-flip/shared';
 
 export const NATURE_RUNE_ID = 561;
 /** Casts/hour for High Level Alchemy (standard rate). */
@@ -137,79 +137,6 @@ export function computeSetRows(
     });
   }
   rows.sort((a, b) => b.bestMargin - a.bestMargin);
-  return rows;
-}
-
-export interface MethodRow {
-  def: MethodDef;
-  /** Σ inputs at buy price + coin costs, per action. */
-  costPerAction: number;
-  /** Σ outputs at sell price minus tax, per action. */
-  revenuePerAction: number;
-  profitPerAction: number;
-  gpPerHour: number;
-  /** Hourly volume of the least liquid input/output. */
-  volume1h: number;
-  /** null when no character is imported. */
-  meetsReqs: boolean | null;
-}
-
-/**
- * Live profit for each curated processing method; `levels` (from an imported
- * character) marks which methods the player can actually do.
- */
-export function computeMethodRows(
-  items: ItemSnapshot[],
-  cfg: AppConfig,
-  levels?: Record<string, number>,
-  methods: MethodDef[] = METHODS,
-): MethodRow[] {
-  const byName = new Map(items.map((i) => [i.name, i]));
-  const rows: MethodRow[] = [];
-
-  for (const def of methods) {
-    let cost = def.coinsPerAction ?? 0;
-    let revenue = 0;
-    let minVolume = Infinity;
-    let resolvable = true;
-
-    for (const input of def.inputs) {
-      const item = byName.get(input.name);
-      if (!item || item.low === null) {
-        resolvable = false;
-        break;
-      }
-      cost += (item.low + cfg.offerOffset) * input.qty;
-      minVolume = Math.min(minVolume, item.volume1h);
-    }
-    if (resolvable) {
-      for (const output of def.outputs) {
-        const item = byName.get(output.name);
-        if (!item || item.high === null) {
-          resolvable = false;
-          break;
-        }
-        const sellAt = Math.max(1, item.high - cfg.offerOffset);
-        revenue += (sellAt - geTax(item.taxExempt, sellAt)) * output.qty;
-        minVolume = Math.min(minVolume, item.volume1h);
-      }
-    }
-    if (!resolvable) continue;
-
-    const profitPerAction = revenue - cost;
-    rows.push({
-      def,
-      costPerAction: cost,
-      revenuePerAction: revenue,
-      profitPerAction,
-      gpPerHour: profitPerAction * def.actionsPerHour,
-      volume1h: minVolume === Infinity ? 0 : minVolume,
-      meetsReqs: levels
-        ? def.requirements.every((r) => (levels[r.skill] ?? 1) >= r.level)
-        : null,
-    });
-  }
-  rows.sort((a, b) => b.gpPerHour - a.gpPerHour);
   return rows;
 }
 

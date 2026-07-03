@@ -148,22 +148,20 @@ export default function FaqPage() {
         </Q>
         <Q id="deal-score" q="How is the Deal Score computed?">
           <p>
-            One opinionated 1–100 number so flips and bankstand methods can be compared
-            directly. It starts from expected gp/hour (log-scaled: 50k/h → 0, 5m/h → max) and
-            multiplies in discounts for everything that makes the profit less certain:
-          </p>
-          <p>
-            <strong>Liquidity</strong> (full marks at 1,000+ traded/hour on the thinnest leg) ·{' '}
-            <strong>effort</strong> (flips are passive ×1.0; AFK ×0.8, semi-AFK ×0.65,
-            click-heavy ×0.45 — your attention costs money) · <strong>capital risk</strong>{' '}
-            (sliding penalty above 1m in motion, ×0.5 from 100m) · <strong>risk flags</strong>{' '}
-            (stale ×0.3, thin ×0.25, unstable ×0.5) · <strong>consistency</strong> (a margin
-            that disagrees with the last hour&apos;s average is probably a blip; methods carry
-            a flat ×0.9 for rate uncertainty). Tax is already inside every margin.
+            The exact formula is our secret sauce, so we don&apos;t publish the weights — but
+            here&apos;s what it weighs. It starts from a deal&apos;s expected gp/hour and
+            discounts it for everything that makes that profit less certain or more costly to
+            earn: how deep the market is, how much of your attention the method demands
+            (flipping is passive; click-heavy bankstanding is not), how much capital sits at
+            risk while you work it, any risk flags on the item, and whether the current
+            spread actually existed over the past hour or is likely a blip. Tax is already
+            inside every margin.
           </p>
           <p>
             100 means: liquid, passive, cheap to enter, flag-free and stable — as close to
-            certain profit as the GE gets. It is still an opinion, not a guarantee.
+            certain profit as the GE gets. When something holds a score back, the ranking
+            shows a short plain-language hint (e.g. &ldquo;shallow market&rdquo;) without the
+            numbers. It is an opinion, not a guarantee.
           </p>
         </Q>
         <Q id="high-alch" q="How does the high-alch panel work?">
