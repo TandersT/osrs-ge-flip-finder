@@ -148,16 +148,26 @@ export default function StarterPage() {
           <table className="w-full min-w-[860px] border-collapse text-sm">
             <thead className="sticky top-0 bg-panel-light">
               <tr>
-                {['#', 'Item', 'Buy at', 'Sell at', 'Margin/item', 'You can flip', 'Capital needed', 'Est. profit', 'Return'].map(
-                  (h) => (
-                    <th
-                      key={h}
-                      className="whitespace-nowrap px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-gold"
-                    >
-                      {h}
-                    </th>
-                  ),
-                )}
+                {(
+                  [
+                    ['#', false],
+                    ['Item', false],
+                    ['Buy at', true],
+                    ['Sell at', true],
+                    ['Margin/item', true],
+                    ['You can flip', true],
+                    ['Capital needed', true],
+                    ['Est. profit', true],
+                    ['Return', true],
+                  ] as const
+                ).map(([h, right]) => (
+                  <th
+                    key={h}
+                    className={`whitespace-nowrap px-3 py-2 text-xs font-semibold uppercase tracking-wide text-gold ${right ? 'text-right' : 'text-left'}`}
+                  >
+                    {h}
+                  </th>
+                ))}
               </tr>
             </thead>
             <tbody>
@@ -179,16 +189,16 @@ export default function StarterPage() {
                       )}
                     </span>
                   </td>
-                  <td className="px-3 py-1.5"><GpText amount={pick.row.flip!.buyAt} /></td>
-                  <td className="px-3 py-1.5"><GpText amount={pick.row.flip!.sellAt} /></td>
-                  <td className="px-3 py-1.5"><GpText amount={pick.row.flip!.marginPerItem} signed /></td>
-                  <td className="px-3 py-1.5 tabular-nums">
+                  <td className="px-3 py-1.5 text-right"><GpText amount={pick.row.flip!.buyAt} /></td>
+                  <td className="px-3 py-1.5 text-right"><GpText amount={pick.row.flip!.sellAt} /></td>
+                  <td className="px-3 py-1.5 text-right"><GpText amount={pick.row.flip!.marginPerItem} signed /></td>
+                  <td className="px-3 py-1.5 text-right tabular-nums">
                     {pick.affordableQty.toLocaleString('en-US')}
                     <span className="opacity-40"> ×</span>
                   </td>
-                  <td className="px-3 py-1.5"><GpText amount={pick.capitalUsed} /></td>
-                  <td className="px-3 py-1.5"><GpText amount={pick.expectedProfit} signed /></td>
-                  <td className="px-3 py-1.5 tabular-nums text-osrs-green">
+                  <td className="px-3 py-1.5 text-right"><GpText amount={pick.capitalUsed} /></td>
+                  <td className="px-3 py-1.5 text-right"><GpText amount={pick.expectedProfit} signed /></td>
+                  <td className="px-3 py-1.5 text-right tabular-nums text-osrs-green">
                     {(pick.returnOnCapital * 100).toFixed(1)}%
                   </td>
                 </tr>

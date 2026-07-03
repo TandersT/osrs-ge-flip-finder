@@ -10,6 +10,7 @@
     "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
+    "@fastify/compress": "^7.0.3",
     "@fastify/static": "^7.0.4",
     "@osrs-flip/shared": "*",
     "dotenv": "^16.4.5",

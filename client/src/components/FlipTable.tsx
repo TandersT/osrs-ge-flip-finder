@@ -84,24 +84,28 @@ export function buildColumns({ nowSec, isWatched, onToggleWatch, sinceAdded }: T
     }),
     col.accessor((r) => r.flip?.buyAt ?? undefined, {
       id: 'buyAt',
+      meta: { align: 'right', title: 'What you pay: latest insta-sell price + 1 gp' },
       header: 'Buy',
       cell: (info) => <GpText amount={info.getValue() ?? null} />,
       sortUndefined: 'last',
     }),
     col.accessor((r) => r.flip?.sellAt ?? undefined, {
       id: 'sellAt',
+      meta: { align: 'right', title: 'What you list at: latest insta-buy price − 1 gp' },
       header: 'Sell',
       cell: (info) => <GpText amount={info.getValue() ?? null} />,
       sortUndefined: 'last',
     }),
     col.accessor((r) => r.flip?.marginPerItem ?? undefined, {
       id: 'margin',
+      meta: { align: 'right', title: 'Profit per item AFTER the 2% GE tax' },
       header: 'Margin',
       cell: (info) => <GpText amount={info.getValue() ?? null} signed />,
       sortUndefined: 'last',
     }),
     col.accessor((r) => (r.flip ? r.flip.roi : undefined), {
       id: 'roi',
+      meta: { align: 'right', title: 'Margin as a percentage of the buy price' },
       header: 'ROI',
       cell: (info) => {
         const roi = info.getValue();
@@ -113,6 +117,7 @@ export function buildColumns({ nowSec, isWatched, onToggleWatch, sinceAdded }: T
     }),
     col.accessor((r) => r.flip?.tax ?? undefined, {
       id: 'tax',
+      meta: { align: 'right', title: 'GE tax per item at the sell price (2%, rounded down, capped at 5m)' },
       header: 'Tax',
       cell: (info) => {
         const v = info.getValue();
@@ -123,28 +128,33 @@ export function buildColumns({ nowSec, isWatched, onToggleWatch, sinceAdded }: T
     }),
     col.accessor((r) => r.limit ?? undefined, {
       id: 'limit',
+      meta: { align: 'right', title: 'Max you can buy per rolling 4 hours' },
       header: 'Limit',
       cell: (info) => numCell(info.getValue() ?? null),
       sortUndefined: 'last',
     }),
     col.accessor('volume1h', {
       header: 'Vol/1h',
+      meta: { align: 'right', title: 'Units traded in the last hour — higher fills faster' },
       cell: (info) => numCell(info.getValue()),
     }),
     col.accessor((r) => r.dailyVolume ?? undefined, {
       id: 'dailyVolume',
+      meta: { align: 'right', title: 'Units traded per day' },
       header: 'Vol/day',
       cell: (info) => numCell(info.getValue() ?? null),
       sortUndefined: 'last',
     }),
     col.accessor((r) => r.flip?.profitPer4h ?? undefined, {
       id: 'profitPer4h',
+      meta: { align: 'right', title: 'Margin × what you can realistically buy in one 4h window' },
       header: 'Profit/4h',
       cell: (info) => <GpText amount={info.getValue() ?? null} signed />,
       sortUndefined: 'last',
     }),
     col.accessor((r) => r.ageSeconds ?? undefined, {
       id: 'age',
+      meta: { align: 'right', title: 'Age of the older price side — red means stale' },
       header: 'Age',
       cell: (info) => {
         const row = info.row.original;
@@ -164,6 +174,7 @@ export function buildColumns({ nowSec, isWatched, onToggleWatch, sinceAdded }: T
       ? [
           col.accessor((r) => sinceAdded.get(r.id) ?? undefined, {
             id: 'sinceAdded',
+      meta: { align: 'right' as const, title: 'Mid-price change since you starred it' },
             header: 'Since added',
             cell: (info) => {
               const v = info.getValue();
@@ -258,17 +269,27 @@ export function FlipTable({ rows, context, sorting, onSortingChange }: FlipTable
         <thead className="sticky top-0 z-10 bg-panel-light shadow">
           {table.getHeaderGroups().map((hg) => (
             <tr key={hg.id}>
-              {hg.headers.map((header) => (
-                <th
-                  key={header.id}
-                  onClick={header.column.getToggleSortingHandler()}
-                  className="cursor-pointer select-none whitespace-nowrap px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-gold hover:text-osrs-yellow"
-                  style={header.column.id === 'name' ? { width: 280 } : undefined}
-                >
-                  {flexRender(header.column.columnDef.header, header.getContext())}
-                  {{ asc: ' ▲', desc: ' ▼' }[header.column.getIsSorted() as string] ?? ''}
-                </th>
-              ))}
+              {hg.headers.map((header) => {
+                const meta = header.column.columnDef.meta;
+                const sorted = header.column.getIsSorted();
+                return (
+                  <th
+                    key={header.id}
+                    onClick={header.column.getToggleSortingHandler()}
+                    title={meta?.title}
+                    aria-sort={
+                      sorted === 'asc' ? 'ascending' : sorted === 'desc' ? 'descending' : 'none'
+                    }
+                    className={`cursor-pointer select-none whitespace-nowrap px-3 py-2 text-xs font-semibold uppercase tracking-wide text-gold hover:text-osrs-yellow ${
+                      meta?.align === 'right' ? 'text-right' : 'text-left'
+                    }`}
+                    style={header.column.id === 'name' ? { width: 280 } : undefined}
+                  >
+                    {flexRender(header.column.columnDef.header, header.getContext())}
+                    {{ asc: ' ▲', desc: ' ▼' }[sorted as string] ?? ''}
+                  </th>
+                );
+              })}
             </tr>
           ))}
         </thead>
@@ -287,7 +308,12 @@ export function FlipTable({ rows, context, sorting, onSortingChange }: FlipTable
                 className="h-10 cursor-pointer border-t border-panel-border/50 hover:bg-panel-light"
               >
                 {row.getVisibleCells().map((cell) => (
-                  <td key={cell.id} className="whitespace-nowrap px-3 py-1.5">
+                  <td
+                    key={cell.id}
+                    className={`whitespace-nowrap px-3 py-1.5 ${
+                      cell.column.columnDef.meta?.align === 'right' ? 'text-right' : ''
+                    }`}
+                  >
                     {flexRender(cell.column.columnDef.cell, cell.getContext())}
                   </td>
                 ))}

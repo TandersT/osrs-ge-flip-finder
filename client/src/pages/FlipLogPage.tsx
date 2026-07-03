@@ -352,10 +352,21 @@ export default function FlipLogPage() {
             <table className="w-full min-w-[760px] border-collapse text-sm">
               <thead className="bg-panel-light">
                 <tr>
-                  {['When', 'Item', 'Qty', 'Bought', 'Sold', 'Tax/item', 'Profit', ''].map((h, i) => (
+                  {(
+                    [
+                      ['When', false],
+                      ['Item', false],
+                      ['Qty', true],
+                      ['Bought', true],
+                      ['Sold', true],
+                      ['Tax/item', true],
+                      ['Profit', true],
+                      ['', false],
+                    ] as const
+                  ).map(([h, right], i) => (
                     <th
                       key={i}
-                      className="whitespace-nowrap px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-gold"
+                      className={`whitespace-nowrap px-3 py-2 text-xs font-semibold uppercase tracking-wide text-gold ${right ? 'text-right' : 'text-left'}`}
                     >
                       {h}
                     </th>
@@ -374,11 +385,11 @@ export default function FlipLogPage() {
                         {e.itemName}
                       </Link>
                     </td>
-                    <td className="px-3 py-1.5 tabular-nums">{e.qty.toLocaleString('en-US')}</td>
-                    <td className="px-3 py-1.5"><GpText amount={e.buyPrice} /></td>
-                    <td className="px-3 py-1.5"><GpText amount={e.sellPrice} /></td>
-                    <td className="px-3 py-1.5 tabular-nums opacity-70">{e.taxPerItem.toLocaleString('en-US')}</td>
-                    <td className="px-3 py-1.5"><GpText amount={e.profit} signed /></td>
+                    <td className="px-3 py-1.5 text-right tabular-nums">{e.qty.toLocaleString('en-US')}</td>
+                    <td className="px-3 py-1.5 text-right"><GpText amount={e.buyPrice} /></td>
+                    <td className="px-3 py-1.5 text-right"><GpText amount={e.sellPrice} /></td>
+                    <td className="px-3 py-1.5 text-right tabular-nums opacity-70">{e.taxPerItem.toLocaleString('en-US')}</td>
+                    <td className="px-3 py-1.5 text-right"><GpText amount={e.profit} signed /></td>
                     <td className="px-3 py-1.5">
                       <button
                         onClick={() => remove(e.id)}

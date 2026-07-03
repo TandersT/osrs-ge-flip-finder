@@ -1,6 +1,6 @@
 /** Pulsing placeholder bar. */
 export function Skeleton({ className = '' }: { className?: string }) {
-  return <div className={`animate-pulse rounded bg-panel-light ${className}`} />;
+  return <div className={`animate-pulse motion-reduce:animate-none rounded bg-panel-light ${className}`} />;
 }
 
 /** Table-shaped loading state for the finder/watchlist/long-term views. */
@@ -31,7 +31,7 @@ export function ChartSkeleton() {
           // deterministic pseudo-random heights so the pulse looks chart-like
           <div
             key={i}
-            className="w-full animate-pulse rounded bg-panel-light"
+            className="w-full animate-pulse motion-reduce:animate-none rounded bg-panel-light"
             style={{ height: `${30 + ((i * 37) % 60)}%` }}
           />
         ))}

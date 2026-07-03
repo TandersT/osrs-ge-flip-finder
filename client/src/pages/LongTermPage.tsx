@@ -30,16 +30,16 @@ type SortKey = keyof Pick<
   'name' | 'price' | 'change7d' | 'change30d' | 'change90d' | 'zScore90' | 'volatility30' | 'volumeTrend30' | 'dailyVolume'
 >;
 
-const COLUMNS: { key: SortKey; label: string; title?: string }[] = [
+const COLUMNS: { key: SortKey; label: string; title?: string; right?: boolean }[] = [
   { key: 'name', label: 'Item' },
-  { key: 'price', label: 'Price' },
-  { key: 'change7d', label: '7d' },
-  { key: 'change30d', label: '30d' },
-  { key: 'change90d', label: '90d' },
-  { key: 'zScore90', label: 'Z (90d)', title: 'Std deviations from the 90-day mean price' },
-  { key: 'volatility30', label: 'Volatility', title: '30-day coefficient of variation' },
-  { key: 'volumeTrend30', label: 'Vol trend', title: '30-day volume slope (per day)' },
-  { key: 'dailyVolume', label: 'Vol/day' },
+  { key: 'price', right: true, label: 'Price' },
+  { key: 'change7d', right: true, label: '7d' },
+  { key: 'change30d', right: true, label: '30d' },
+  { key: 'change90d', right: true, label: '90d' },
+  { key: 'zScore90', right: true, label: 'Z (90d)', title: 'Std deviations from the 90-day mean price' },
+  { key: 'volatility30', right: true, label: 'Volatility', title: '30-day coefficient of variation' },
+  { key: 'volumeTrend30', right: true, label: 'Vol trend', title: '30-day volume slope (per day)' },
+  { key: 'dailyVolume', right: true, label: 'Vol/day' },
 ];
 
 export default function LongTermPage() {
@@ -133,7 +133,12 @@ export default function LongTermPage() {
                   key={c.key}
                   title={c.title}
                   onClick={() => toggleSort(c.key)}
-                  className="cursor-pointer select-none whitespace-nowrap px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-gold hover:text-osrs-yellow"
+                  aria-sort={
+                    sortKey === c.key ? (sortDesc ? 'descending' : 'ascending') : 'none'
+                  }
+                  className={`cursor-pointer select-none whitespace-nowrap px-3 py-2 text-xs font-semibold uppercase tracking-wide text-gold hover:text-osrs-yellow ${
+                    c.right ? 'text-right' : 'text-left'
+                  }`}
                 >
                   {c.label}
                   {sortKey === c.key ? (sortDesc ? ' ▼' : ' ▲') : ''}
@@ -155,13 +160,13 @@ export default function LongTermPage() {
                     {row.name}
                   </span>
                 </td>
-                <td className="whitespace-nowrap px-3 py-1.5">
+                <td className="whitespace-nowrap px-3 py-1.5 text-right">
                   <GpText amount={row.price === null ? null : Math.round(row.price)} />
                 </td>
-                <td className="whitespace-nowrap px-3 py-1.5"><Pct value={row.change7d} /></td>
-                <td className="whitespace-nowrap px-3 py-1.5"><Pct value={row.change30d} /></td>
-                <td className="whitespace-nowrap px-3 py-1.5"><Pct value={row.change90d} /></td>
-                <td className="whitespace-nowrap px-3 py-1.5">
+                <td className="whitespace-nowrap px-3 py-1.5 text-right"><Pct value={row.change7d} /></td>
+                <td className="whitespace-nowrap px-3 py-1.5 text-right"><Pct value={row.change30d} /></td>
+                <td className="whitespace-nowrap px-3 py-1.5 text-right"><Pct value={row.change90d} /></td>
+                <td className="whitespace-nowrap px-3 py-1.5 text-right">
                   {row.zScore90 === null ? (
                     <span className="opacity-40">—</span>
                   ) : (
@@ -170,15 +175,15 @@ export default function LongTermPage() {
                     </span>
                   )}
                 </td>
-                <td className="whitespace-nowrap px-3 py-1.5">
+                <td className="whitespace-nowrap px-3 py-1.5 text-right">
                   {row.volatility30 === null ? (
                     <span className="opacity-40">—</span>
                   ) : (
                     <span className="tabular-nums opacity-80">{(row.volatility30 * 100).toFixed(1)}%</span>
                   )}
                 </td>
-                <td className="whitespace-nowrap px-3 py-1.5"><Pct value={row.volumeTrend30} /></td>
-                <td className="whitespace-nowrap px-3 py-1.5 tabular-nums opacity-80">
+                <td className="whitespace-nowrap px-3 py-1.5 text-right"><Pct value={row.volumeTrend30} /></td>
+                <td className="whitespace-nowrap px-3 py-1.5 text-right tabular-nums opacity-80">
                   {row.dailyVolume === null ? '—' : row.dailyVolume.toLocaleString('en-US')}
                 </td>
                 <td className="whitespace-nowrap px-3 py-1.5">

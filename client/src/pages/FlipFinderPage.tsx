@@ -1,5 +1,5 @@
 import { useCallback, useMemo } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import type { SortingState } from '@tanstack/react-table';
 import { useAppConfig, useItems } from '../lib/api';
 import { applyFilters, buildRows, type Filters } from '../lib/rows';
@@ -80,6 +80,10 @@ export default function FlipFinderPage() {
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="text-xs opacity-50">
           {filtered.length.toLocaleString('en-US')} of {rows.length.toLocaleString('en-US')} items
+          <span className="mx-2 opacity-50">·</span>
+          <Link to="/faq" className="underline hover:text-gold">
+            what do these numbers mean?
+          </Link>
         </div>
         <RefreshIndicator
           dataUpdatedAt={dataUpdatedAt}

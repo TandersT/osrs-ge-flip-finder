@@ -153,6 +153,15 @@ export default function ItemDetailPage() {
           </span>
         )}
         <span className="text-xs opacity-40">#{item.id}</span>
+        <a
+          href={`https://oldschool.runescape.wiki/w/${encodeURIComponent(item.name.replaceAll(' ', '_'))}`}
+          target="_blank"
+          rel="noreferrer"
+          className="text-xs text-gold/70 underline hover:text-gold"
+          title="Open this item on the OSRS Wiki"
+        >
+          Wiki ↗
+        </a>
       </header>
 
       <div className="grid gap-4 lg:grid-cols-3">
