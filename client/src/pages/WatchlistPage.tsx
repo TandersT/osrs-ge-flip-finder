@@ -4,14 +4,15 @@ import type { SortingState } from '@tanstack/react-table';
 import { pctChange } from '@osrs-flip/shared';
 import { useAppConfig, useItems } from '../lib/api';
 import { buildRows } from '../lib/rows';
-import { useWatchlist } from '../lib/watchlist';
+import { useGatedWatchlist } from '../lib/useGatedWatchlist';
 import { FlipTable, rowMid, type TableContext } from '../components/FlipTable';
 import { TableSkeleton } from '../components/Skeleton';
+import { UpsellDialog } from '../components/UpsellDialog';
 
 export default function WatchlistPage() {
   const config = useAppConfig();
   const { data, isPending, isError, error } = useItems(config.clientRefreshSeconds);
-  const { entries, isWatched, toggle } = useWatchlist();
+  const { entries, isWatched, toggle, upsellOpen, closeUpsell, watchlistMax } = useGatedWatchlist();
   const [sorting, setSorting] = useState<SortingState>([{ id: 'profitPer4h', desc: true }]);
 
   const nowSec = useMemo(() => Math.floor(Date.now() / 1000), [data]);
@@ -72,6 +73,9 @@ export default function WatchlistPage() {
         stored in this browser
       </div>
       <FlipTable rows={rows} context={tableContext} sorting={sorting} onSortingChange={setSorting} />
+      <UpsellDialog open={upsellOpen} onClose={closeUpsell} title="Watchlist full">
+        The free tier tracks up to {watchlistMax} items. Premium removes the cap.
+      </UpsellDialog>
     </div>
   );
 }

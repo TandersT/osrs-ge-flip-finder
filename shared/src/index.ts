@@ -4,3 +4,4 @@ export * from './taxExemptions.js';
 export * from './flip.js';
 export * from './format.js';
 export * from './stats.js';
+export * from './tiers.js';

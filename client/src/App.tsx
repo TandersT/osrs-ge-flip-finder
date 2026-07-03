@@ -6,6 +6,7 @@ import WatchlistPage from './pages/WatchlistPage';
 import StarterPage from './pages/StarterPage';
 import FaqPage from './pages/FaqPage';
 import FlipLogPage from './pages/FlipLogPage';
+import PremiumPage from './pages/PremiumPage';
 
 function Tab({ to, label }: { to: string; label: string }) {
   return (
@@ -40,6 +41,7 @@ export default function App() {
           <Tab to="/watchlist" label="Watchlist" />
           <Tab to="/log" label="Flip Log" />
           <Tab to="/faq" label="FAQ" />
+          <Tab to="/premium" label="⭐ Premium" />
         </nav>
       </header>
       <main className="flex-1">
@@ -51,6 +53,7 @@ export default function App() {
           <Route path="/watchlist" element={<WatchlistPage />} />
           <Route path="/log" element={<FlipLogPage />} />
           <Route path="/faq" element={<FaqPage />} />
+          <Route path="/premium" element={<PremiumPage />} />
         </Routes>
       </main>
       <footer className="border-t border-panel-border/50 pt-3 text-center text-xs opacity-40">

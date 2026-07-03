@@ -255,6 +255,15 @@ export default function FaqPage() {
             recipient sees exactly your view.
           </p>
         </Q>
+        <Q q="What does Premium add — and what stays free?">
+          <p>
+            Everything you need to flip is free: the live finder, filters, risk flags, item
+            charts, the starter guide. <Link to="/premium" className="text-gold underline">Premium</Link>{' '}
+            removes the scale limits (watchlist, flip log, CSV export) and unlocks the full
+            long-term screener plus a full year of price history. The underlying price data is
+            the community&apos;s and stays free for everyone.
+          </p>
+        </Q>
         <Q q="Is this affiliated with Jagex?">
           <p>
             No. Old School RuneScape is a trademark of Jagex Ltd. This is a fan-made tool built

@@ -212,6 +212,30 @@ isn't installed (needs sudo) and editing the plugin config is gated. The review 
 same Playwright engine scripted; to enable the plugin, either install Chrome or add
 `--browser chromium` to the plugin's `.mcp.json` and reconnect.
 
+## Post-completion: subscription model (2026-07-03)
+
+Two tiers, free/premium. Split philosophy: **free stays genuinely useful for casual
+flipping and never paywalls safety** (risk flags, starter guide, FAQ, live finder all
+free); **premium sells scale + long-horizon analytics**:
+
+| | Free | Premium ($3.99/mo · $29.99/yr placeholder) |
+|---|---|---|
+| Watchlist | 5 items | unlimited |
+| Flip log | 25 entries, no CSV | unlimited + CSV |
+| Chart history | 90 days | full year |
+| Long-term screener | top-5 teaser (honest counts) | all ~250 rows |
+
+- Entitlements are **data in `shared/src/tiers.ts`** (`ENTITLEMENTS[tier]`), not code
+  branches — the future payment service just changes which tier the client is told.
+- Gating is add-only/never-read-blocking: hitting a cap opens an UpsellDialog; existing
+  data is never hidden (a 30-entry log from before a downgrade stays visible).
+- Until payments exist, premium is a local flag redeemed with `GEFF-DEV-2026` on
+  `/premium` (explicitly not a secret — nothing is protected server-side yet).
+- The wiki's price data itself is never gated (etiquette + the FAQ says so publicly).
+- Payment integration is planned in **docs/payments-plan.md**: Phase 1 Stripe Checkout +
+  account-less license keys validated server-side (SQLite), Phase 2 accounts only if
+  cross-device sync demands it. 5 new e2e specs cover caps, teaser, locks, unlock, bad codes.
+
 ## Post-completion: spacing/whitespace pass (2026-07-03)
 
 Stefan reported overlapping elements. Root cause found at 640–1024px widths: the slider

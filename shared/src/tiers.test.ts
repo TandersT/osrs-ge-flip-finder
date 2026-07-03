@@ -1,0 +1,30 @@
+import { describe, expect, it } from 'vitest';
+import { atLimit, ENTITLEMENTS, getEntitlements } from './tiers.js';
+
+describe('entitlements', () => {
+  it('premium is a strict superset of free', () => {
+    const free = ENTITLEMENTS.free;
+    const premium = ENTITLEMENTS.premium;
+    // every numeric cap is lifted, every boolean is enabled
+    expect(premium.watchlistMax).toBeNull();
+    expect(premium.fliplogMax).toBeNull();
+    expect(premium.historyDays).toBeNull();
+    expect(premium.longtermRows).toBeNull();
+    expect(premium.csvExport).toBe(true);
+    expect(free.csvExport).toBe(false);
+  });
+
+  it('free caps are positive so the tier stays usable', () => {
+    const free = getEntitlements('free');
+    expect(free.watchlistMax).toBeGreaterThan(0);
+    expect(free.fliplogMax).toBeGreaterThan(0);
+    expect(free.historyDays).toBeGreaterThanOrEqual(30);
+    expect(free.longtermRows).toBeGreaterThan(0);
+  });
+
+  it('atLimit handles capped and unlimited values', () => {
+    expect(atLimit(5, 5)).toBe(true);
+    expect(atLimit(4, 5)).toBe(false);
+    expect(atLimit(9_999, null)).toBe(false);
+  });
+});

@@ -42,7 +42,11 @@ test('open position: log buy, live unrealized P&L, complete, gp/hour', async ({ 
   await expect(page.locator('section', { hasText: 'History' }).getByText('+352k')).toBeVisible();
 });
 
-test('log persists across reload and exports CSV', async ({ page }) => {
+test('log persists across reload and exports CSV (premium)', async ({ page }) => {
+  // CSV export is a premium feature — unlock with the dev code first
+  await page.goto('/premium');
+  await page.getByLabel('Unlock code').fill('GEFF-DEV-2026');
+  await page.getByRole('button', { name: 'Redeem' }).click();
   await page.goto('/log?item=4151');
   await expect(page.locator('button[title="Click to change item"]')).toContainText('Abyssal whip');
   await page.locator('label:has-text("Bought at") input').fill('500');

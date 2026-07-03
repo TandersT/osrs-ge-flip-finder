@@ -4,12 +4,13 @@ import type { SortingState } from '@tanstack/react-table';
 import { useAppConfig, useItems } from '../lib/api';
 import { applyFilters, buildRows, type Filters, type PrevPrices } from '../lib/rows';
 import { filtersFromParams, paramsFromState, sortingFromParams } from '../lib/urlState';
-import { useWatchlist } from '../lib/watchlist';
+import { useGatedWatchlist } from '../lib/useGatedWatchlist';
 import { FilterBar } from '../components/FilterBar';
 import { FlipTable, rowMid, type TableContext } from '../components/FlipTable';
 import { NewUserBanner } from '../components/NewUserBanner';
 import { RefreshIndicator } from '../components/RefreshIndicator';
 import { TableSkeleton } from '../components/Skeleton';
+import { UpsellDialog } from '../components/UpsellDialog';
 
 export default function FlipFinderPage() {
   const config = useAppConfig();
@@ -17,7 +18,7 @@ export default function FlipFinderPage() {
     config.clientRefreshSeconds,
   );
   const [searchParams, setSearchParams] = useSearchParams();
-  const { isWatched, toggle } = useWatchlist();
+  const { isWatched, toggle, upsellOpen, closeUpsell, watchlistMax } = useGatedWatchlist();
 
   // URL is the single source of truth for filters + sort, so views are shareable
   const filters = useMemo(() => filtersFromParams(searchParams), [searchParams]);
@@ -101,6 +102,10 @@ export default function FlipFinderPage() {
         />
       </div>
       <FlipTable rows={filtered} context={tableContext} sorting={sorting} onSortingChange={setSorting} />
+      <UpsellDialog open={upsellOpen} onClose={closeUpsell} title="Watchlist full">
+        The free tier tracks up to {watchlistMax} items. Premium removes the cap — star as
+        many as you like.
+      </UpsellDialog>
     </div>
   );
 }

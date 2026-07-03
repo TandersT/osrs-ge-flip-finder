@@ -63,6 +63,14 @@ Published at [github.com/TandersT/osrs-ge-flip-finder](https://github.com/Tander
 (private). On the dev machine the remote uses the `github-tanderst` SSH alias.
 See `DECISIONS.md` ("Repo conventions") for the history of how it got there.
 
+## Tiers
+
+Free covers the whole flipping loop (finder, filters, risk flags, charts, starter guide).
+Premium removes scale limits (watchlist, flip log + CSV) and unlocks the full long-term
+screener and full-year history. Entitlements live in `shared/src/tiers.ts` as data;
+payments are not integrated yet — see [docs/payments-plan.md](docs/payments-plan.md) for
+the Stripe follow-up plan. Until then `/premium` accepts the dev unlock code.
+
 ## Architecture notes
 
 - **Why every wiki call goes through our backend:** the wiki asks for a descriptive

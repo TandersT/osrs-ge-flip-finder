@@ -10,7 +10,7 @@ import {
   YAxis,
 } from 'recharts';
 import type { AppConfig, ItemSnapshot } from '@osrs-flip/shared';
-import { computeFlip, formatGpAxis, formatGpCompact, formatGpFull, geTax } from '@osrs-flip/shared';
+import { atLimit, computeFlip, formatGpAxis, formatGpCompact, formatGpFull, geTax } from '@osrs-flip/shared';
 import { useAppConfig, useItems } from '../lib/api';
 import { nameMatches } from '../lib/rows';
 import {
@@ -22,6 +22,8 @@ import {
 } from '../lib/fliplog';
 import { GpText } from '../components/GpText';
 import { ItemIcon } from '../components/ItemIcon';
+import { UpsellDialog } from '../components/UpsellDialog';
+import { useTier } from '../lib/tier';
 
 const LINE_COLOR = '#c98500'; // CVD-validated on the dark panel surface
 const GRID_COLOR = '#3d362a';
@@ -251,6 +253,9 @@ export default function FlipLogPage() {
   const { data } = useItems(config.clientRefreshSeconds);
   const { entries, add, complete, remove } = useFlipLog();
   const [params] = useSearchParams();
+  const { entitlements } = useTier();
+  const [upsell, setUpsell] = useState<null | 'cap' | 'csv'>(null);
+  const logAtCap = atLimit(entries.length, entitlements.fliplogMax);
 
   const [selected, setSelected] = useState<ItemSnapshot | null>(null);
   const [qty, setQty] = useState<number | ''>(1);
@@ -302,6 +307,10 @@ export default function FlipLogPage() {
 
   const submit = () => {
     if (!selected || preview === null || qty === '' || buy === '') return;
+    if (logAtCap) {
+      setUpsell('cap');
+      return;
+    }
     add({
       itemId: selected.id,
       itemName: selected.name,
@@ -318,6 +327,10 @@ export default function FlipLogPage() {
   };
 
   const exportCsv = async () => {
+    if (!entitlements.csvExport) {
+      setUpsell('csv');
+      return;
+    }
     const { toCsv } = await import('../lib/fliplog');
     const blob = new Blob([toCsv(entries)], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
@@ -499,12 +512,20 @@ export default function FlipLogPage() {
       {closed.length > 0 && (
         <section className="overflow-auto rounded border border-panel-border bg-panel">
           <div className="flex items-center justify-between px-3 py-2">
-            <span className="text-xs uppercase tracking-wide text-gold">History</span>
+            <span className="text-xs uppercase tracking-wide text-gold">
+              History
+              {entitlements.fliplogMax !== null && (
+                <span className={`ml-2 normal-case ${logAtCap ? 'text-osrs-red' : 'opacity-50'}`}>
+                  {entries.length} / {entitlements.fliplogMax} logged
+                </span>
+              )}
+            </span>
             <button
               onClick={exportCsv}
+              title={entitlements.csvExport ? 'Download the full log as CSV' : 'CSV export is a Premium feature'}
               className="rounded border border-panel-border px-2 py-1 text-xs hover:border-gold hover:text-gold"
             >
-              ⬇ Export CSV
+              {entitlements.csvExport ? '⬇' : '🔒'} Export CSV
             </button>
           </div>
           <table className="w-full min-w-[760px] border-collapse text-sm">
@@ -577,6 +598,14 @@ export default function FlipLogPage() {
           </p>
         </div>
       )}
+
+      <UpsellDialog open={upsell === 'cap'} onClose={() => setUpsell(null)} title="Flip log full">
+        The free tier keeps your last {entitlements.fliplogMax} flips. Premium logs without
+        limits — and exports everything as CSV.
+      </UpsellDialog>
+      <UpsellDialog open={upsell === 'csv'} onClose={() => setUpsell(null)} title="CSV export">
+        Exporting your flip history is a Premium feature.
+      </UpsellDialog>
     </div>
   );
 }

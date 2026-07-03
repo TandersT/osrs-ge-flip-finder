@@ -4,11 +4,13 @@ import type { Timestep } from '@osrs-flip/shared';
 import { breakEvenSell, computeFlip, formatGpFull } from '@osrs-flip/shared';
 import { useAppConfig, useItems, useTimeseries } from '../lib/api';
 import { computeItemStats, currentMid } from '../lib/itemStats';
-import { useWatchlist } from '../lib/watchlist';
+import { useGatedWatchlist } from '../lib/useGatedWatchlist';
+import { useTier } from '../lib/tier';
 import { GpText } from '../components/GpText';
 import { ItemIcon } from '../components/ItemIcon';
 import { PriceVolumeChart } from '../components/PriceVolumeChart';
 import { ChartSkeleton, Skeleton } from '../components/Skeleton';
+import { UpsellDialog } from '../components/UpsellDialog';
 
 const NATURE_RUNE_ID = 561;
 const TIMESTEPS: Timestep[] = ['5m', '1h', '6h', '24h'];
@@ -48,7 +50,9 @@ export default function ItemDetailPage() {
   const config = useAppConfig();
   const [timestep, setTimestep] = useState<Timestep>('1h');
   const [range, setRange] = useState<'1m' | '3m' | 'all'>('3m');
-  const { isWatched, toggle } = useWatchlist();
+  const { isWatched, toggle, upsellOpen, closeUpsell, watchlistMax } = useGatedWatchlist();
+  const { entitlements } = useTier();
+  const [historyUpsell, setHistoryUpsell] = useState(false);
 
   const items = useItems(config.clientRefreshSeconds);
   const chart = useTimeseries(id, timestep);
@@ -67,14 +71,17 @@ export default function ItemDetailPage() {
     [daily.data, item],
   );
 
-  // The 24h series is ~a year; the range chips window it client-side
+  // The 24h series is ~a year; the range chips window it client-side.
+  // Free tier sees at most `historyDays` of it (premium: the full year).
   const chartPoints = useMemo(() => {
     const pts = chart.data?.data ?? [];
-    if (timestep !== '24h' || range === 'all' || pts.length === 0) return pts;
-    const days = range === '1m' ? 30 : 90;
+    if (timestep !== '24h' || pts.length === 0) return pts;
+    const rangeDays = range === '1m' ? 30 : range === '3m' ? 90 : Infinity;
+    const days = Math.min(rangeDays, entitlements.historyDays ?? Infinity);
+    if (!Number.isFinite(days)) return pts;
     const last = pts[pts.length - 1]!.timestamp;
     return pts.filter((p) => p.timestamp >= last - days * 86_400);
-  }, [chart.data, timestep, range]);
+  }, [chart.data, timestep, range, entitlements.historyDays]);
 
   useEffect(() => {
     document.title = item ? `${item.name} — GE Flip Finder` : 'GE Flip Finder — OSRS';
@@ -193,19 +200,23 @@ export default function ItemDetailPage() {
               ))}
               {timestep === '24h' && (
                 <span className="ml-2 flex items-center gap-1 border-l border-panel-border pl-2">
-                  {(['1m', '3m', 'all'] as const).map((r) => (
-                    <button
-                      key={r}
-                      onClick={() => setRange(r)}
-                      className={`rounded px-2 py-1 text-xs ${
-                        r === range
-                          ? 'bg-panel-light text-gold'
-                          : 'text-parchment/50 hover:text-parchment'
-                      }`}
-                    >
-                      {r === 'all' ? '1y' : r}
-                    </button>
-                  ))}
+                  {(['1m', '3m', 'all'] as const).map((r) => {
+                    const locked = r === 'all' && entitlements.historyDays !== null;
+                    return (
+                      <button
+                        key={r}
+                        onClick={() => (locked ? setHistoryUpsell(true) : setRange(r))}
+                        title={locked ? 'Full-year history is a Premium feature' : undefined}
+                        className={`rounded px-2 py-1 text-xs ${
+                          r === range && !locked
+                            ? 'bg-panel-light text-gold'
+                            : 'text-parchment/50 hover:text-parchment'
+                        }`}
+                      >
+                        {r === 'all' ? (locked ? '1y 🔒' : '1y') : r}
+                      </button>
+                    );
+                  })}
                 </span>
               )}
             </div>
@@ -304,6 +315,13 @@ export default function ItemDetailPage() {
           </Panel>
         </div>
       </div>
+      <UpsellDialog open={upsellOpen} onClose={closeUpsell} title="Watchlist full">
+        The free tier tracks up to {watchlistMax} items. Premium removes the cap.
+      </UpsellDialog>
+      <UpsellDialog open={historyUpsell} onClose={() => setHistoryUpsell(false)} title="Full-year history">
+        Free shows the last {entitlements.historyDays} days of price history. Premium unlocks
+        the full year — seasonal patterns, Leagues spikes and all.
+      </UpsellDialog>
     </div>
   );
 }

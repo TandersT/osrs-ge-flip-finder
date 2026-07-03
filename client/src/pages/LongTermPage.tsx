@@ -5,6 +5,8 @@ import type { LongtermResponse, LongtermRow } from '@osrs-flip/shared';
 import { GpText } from '../components/GpText';
 import { ItemIcon } from '../components/ItemIcon';
 import { TableSkeleton } from '../components/Skeleton';
+import { useTier } from '../lib/tier';
+import { Link } from 'react-router-dom';
 
 type Lens = 'all' | 'dips' | 'momentum';
 
@@ -44,6 +46,7 @@ const COLUMNS: { key: SortKey; label: string; title?: string; right?: boolean }[
 
 export default function LongTermPage() {
   const navigate = useNavigate();
+  const { entitlements } = useTier();
   const [lens, setLens] = useState<Lens>('all');
   const [sortKey, setSortKey] = useState<SortKey>('zScore90');
   const [sortDesc, setSortDesc] = useState(false);
@@ -69,6 +72,10 @@ export default function LongTermPage() {
       return dir * ((av as number) - (bv as number));
     });
   }, [data, lens, sortKey, sortDesc]);
+
+  // Free tier sees the top rows as a teaser; counts above stay honest
+  const visible = entitlements.longtermRows === null ? rows : rows.slice(0, entitlements.longtermRows);
+  const hiddenCount = rows.length - visible.length;
 
   const toggleSort = (key: SortKey) => {
     if (key === sortKey) setSortDesc((d) => !d);
@@ -148,7 +155,7 @@ export default function LongTermPage() {
             </tr>
           </thead>
           <tbody>
-            {rows.map((row) => (
+            {visible.map((row) => (
               <tr
                 key={row.id}
                 onClick={() => navigate(`/item/${row.id}`)}
@@ -206,6 +213,20 @@ export default function LongTermPage() {
           <div className="p-10 text-center text-sm opacity-60">No items match this signal right now.</div>
         )}
       </div>
+      {hiddenCount > 0 && (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded border border-gold/40 bg-panel px-4 py-3">
+          <span className="text-sm opacity-80">
+            🔒 {hiddenCount.toLocaleString('en-US')} more screened items — every dip, momentum
+            signal and z-score across the {data.rows.length} most liquid items.
+          </span>
+          <Link
+            to="/premium"
+            className="rounded bg-gold px-3 py-1.5 text-sm font-semibold text-ink hover:brightness-110"
+          >
+            Unlock with Premium
+          </Link>
+        </div>
+      )}
     </div>
   );
 }
