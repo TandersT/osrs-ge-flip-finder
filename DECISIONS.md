@@ -193,6 +193,25 @@ Four verified batches:
    tooling dependency). No service worker yet — installability only.
    Also: the site brand is no longer an `<h1>` (one h1 per page).
 
+## Post-completion: visual review fixes (2026-07-03)
+
+A 13-screenshot sweep (all pages, desktop + mobile) surfaced four real issues, all fixed:
+
+- **Chart axes showed duplicate ticks** ("1.1m, 1.1m, 1m, 1m") — `formatGpCompact`'s
+  1-decimal m-band loses precision in tight ranges. New `formatGpAxis` (up to 2 decimals,
+  trimmed) used by all chart axes; compact stays 1-decimal elsewhere (RS convention).
+- **Detail flip panel rounded away the spread** for >1m items ("Buy 1m / Sell 1m") —
+  those two rows now show exact gp like the tax/break-even rows.
+- **Manipulated spreads showed absurd ROIs** (1,224,900% on a stale+thin javelin) —
+  display capped at ">1000%"; sorting still uses the true value.
+- **Flip-log item picker kept the previous search text** after logging — query now clears
+  when a selection is made.
+
+Note: the Playwright MCP plugin (browser channel "chrome") can't run on this box — Chrome
+isn't installed (needs sudo) and editing the plugin config is gated. The review used the
+same Playwright engine scripted; to enable the plugin, either install Chrome or add
+`--browser chromium` to the plugin's `.mcp.json` and reconnect.
+
 ## Post-completion: Playwright e2e suite (2026-07-03)
 
 - 19 specs in `e2e/` (`npm run e2e`), two projects: desktop (1440px) and mobile (Pixel 7,

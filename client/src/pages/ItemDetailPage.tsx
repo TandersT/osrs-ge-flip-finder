@@ -228,8 +228,12 @@ export default function ItemDetailPage() {
 
         <div className="flex flex-col gap-4">
           <Panel title="Flip at current prices">
-            <StatRow label="Buy at (insta-sell +1)"><GpText amount={flip?.buyAt ?? null} /></StatRow>
-            <StatRow label="Sell at (insta-buy −1)"><GpText amount={flip?.sellAt ?? null} /></StatRow>
+            <StatRow label="Buy at (insta-sell +1)">
+              {flip ? <span className="tabular-nums">{formatGpFull(flip.buyAt)}</span> : <span className="opacity-40">—</span>}
+            </StatRow>
+            <StatRow label="Sell at (insta-buy −1)">
+              {flip ? <span className="tabular-nums">{formatGpFull(flip.sellAt)}</span> : <span className="opacity-40">—</span>}
+            </StatRow>
             <StatRow label="Tax per item">
               {flip ? (
                 <span className="tabular-nums opacity-80">{formatGpFull(flip.tax)}</span>

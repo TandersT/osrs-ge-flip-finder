@@ -12,7 +12,7 @@ import {
   YAxis,
 } from 'recharts';
 import type { TimeseriesPoint, Timestep } from '@osrs-flip/shared';
-import { formatGpFull, formatGpCompact } from '@osrs-flip/shared';
+import { formatGpAxis, formatGpFull } from '@osrs-flip/shared';
 
 // Validated for CVD + contrast on the dark panel surface (dataviz six-checks)
 const HIGH_COLOR = '#c98500'; // insta-buy (high)
@@ -161,7 +161,7 @@ export function PriceVolumeChart({
           <XAxis {...xAxisProps} tick={false} height={4} />
           <YAxis
             domain={['auto', 'auto']}
-            tickFormatter={(v: number) => formatGpCompact(v)}
+            tickFormatter={(v: number) => formatGpAxis(v)}
             stroke={GRID_COLOR}
             tick={{ fill: AXIS_TEXT, fontSize: 11 }}
             tickLine={false}
@@ -199,7 +199,7 @@ export function PriceVolumeChart({
           <CartesianGrid stroke={GRID_COLOR} strokeDasharray="3 3" vertical={false} />
           <XAxis {...xAxisProps} />
           <YAxis
-            tickFormatter={(v: number) => formatGpCompact(v)}
+            tickFormatter={(v: number) => formatGpAxis(v)}
             stroke={GRID_COLOR}
             tick={{ fill: AXIS_TEXT, fontSize: 11 }}
             tickLine={false}

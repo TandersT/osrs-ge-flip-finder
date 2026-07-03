@@ -111,7 +111,7 @@ function FlipCard({
         </span>
         {flip && (
           <span className={`text-xs tabular-nums ${flip.roi < 0 ? 'text-osrs-red' : 'text-osrs-green'}`}>
-            {(flip.roi * 100).toFixed(1)}% ROI
+            {flip.roi > 10 ? '>1000' : (flip.roi * 100).toFixed(1)}% ROI
           </span>
         )}
         <span className="ml-auto text-xs opacity-60">
@@ -208,7 +208,9 @@ export function buildColumns({ nowSec, isWatched, onToggleWatch, sinceAdded }: T
         const roi = info.getValue();
         if (roi === undefined) return <span className="opacity-40">—</span>;
         const cls = roi < 0 ? 'text-osrs-red' : roi >= 0.02 ? 'text-osrs-green' : 'text-parchment';
-        return <span className={`${cls} tabular-nums`}>{(roi * 100).toFixed(1)}%</span>;
+        // manipulated spreads produce absurd ROIs; cap the display, keep the sort
+        const label = roi > 10 ? '>1000' : (roi * 100).toFixed(1);
+        return <span className={`${cls} tabular-nums`}>{label}%</span>;
       },
       sortUndefined: 'last',
     }),

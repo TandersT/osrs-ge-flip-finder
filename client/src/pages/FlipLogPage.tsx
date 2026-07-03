@@ -10,7 +10,7 @@ import {
   YAxis,
 } from 'recharts';
 import type { AppConfig, ItemSnapshot } from '@osrs-flip/shared';
-import { computeFlip, formatGpCompact, formatGpFull, geTax } from '@osrs-flip/shared';
+import { computeFlip, formatGpAxis, formatGpCompact, formatGpFull, geTax } from '@osrs-flip/shared';
 import { useAppConfig, useItems } from '../lib/api';
 import { nameMatches } from '../lib/rows';
 import {
@@ -53,6 +53,14 @@ function ItemPicker({
     if (query.trim() === '') return [];
     return items.filter((i) => nameMatches(i.name, query)).slice(0, 8);
   }, [items, query]);
+
+  // once an item is picked the query is spent — don't resurface it after submit
+  useEffect(() => {
+    if (selected) {
+      setQuery('');
+      setOpen(false);
+    }
+  }, [selected]);
 
   useEffect(() => {
     const close = (e: MouseEvent) => {
@@ -464,7 +472,7 @@ export default function FlipLogPage() {
                 height={36}
               />
               <YAxis
-                tickFormatter={(v: number) => formatGpCompact(v)}
+                tickFormatter={(v: number) => formatGpAxis(v)}
                 stroke={GRID_COLOR}
                 tick={{ fill: AXIS_TEXT, fontSize: 11 }}
                 tickLine={false}

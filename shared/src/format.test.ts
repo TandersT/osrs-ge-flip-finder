@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { formatAge, formatGpCompact, formatGpFull, gpTier, iconUrl } from './format.js';
+import { formatAge, formatGpAxis, formatGpCompact, formatGpFull, gpTier, iconUrl } from './format.js';
 
 describe('formatGpCompact', () => {
   it('shows full digits below 100k', () => {
@@ -28,6 +28,19 @@ describe('formatGpCompact', () => {
   it('keeps the sign on negatives', () => {
     expect(formatGpCompact(-350_000)).toBe('-350k');
     expect(formatGpCompact(-42)).toBe('-42');
+  });
+});
+
+describe('formatGpAxis', () => {
+  it('keeps adjacent tight-range ticks distinct', () => {
+    expect(formatGpAxis(1_000_000)).toBe('1m');
+    expect(formatGpAxis(1_050_000)).toBe('1.05m');
+    expect(formatGpAxis(1_100_000)).toBe('1.1m');
+    expect(formatGpAxis(975_000)).toBe('975k');
+    expect(formatGpAxis(1_250_000_000)).toBe('1.25b');
+    expect(formatGpAxis(5_000)).toBe('5,000');
+    expect(formatGpAxis(0)).toBe('0');
+    expect(formatGpAxis(-1_050_000)).toBe('-1.05m');
   });
 });
 

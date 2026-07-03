@@ -23,6 +23,24 @@ function trimZero(s: string): string {
   return s.endsWith('.0') ? s.slice(0, -2) : s;
 }
 
+/**
+ * Chart-axis gp formatting: like the compact form but with enough precision
+ * (up to 2 decimals) that adjacent ticks in a tight range stay distinct
+ * ("1.05m" vs "1.1m" instead of "1.1m" twice).
+ */
+export function formatGpAxis(amount: number): string {
+  const sign = amount < 0 ? '-' : '';
+  const abs = Math.abs(amount);
+  if (abs >= 1_000_000_000) return `${sign}${trimDecimals(abs / 1_000_000_000)}b`;
+  if (abs >= 1_000_000) return `${sign}${trimDecimals(abs / 1_000_000)}m`;
+  if (abs >= 10_000) return `${sign}${trimDecimals(abs / 1_000)}k`;
+  return `${sign}${abs.toLocaleString('en-US')}`;
+}
+
+function trimDecimals(v: number): string {
+  return String(Number(v.toFixed(2)));
+}
+
 export type GpTier = 'yellow' | 'white' | 'green';
 
 /** RuneScape value colours: yellow < 100k, white 100k–<10m, green >= 10m. */
