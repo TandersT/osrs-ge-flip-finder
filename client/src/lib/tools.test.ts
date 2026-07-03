@@ -72,6 +72,7 @@ describe('computeSetRows', () => {
       ],
       cfg,
       [setDef],
+      [],
     );
     expect(rows).toHaveLength(1);
     const r = rows[0]!;
@@ -80,7 +81,26 @@ describe('computeSetRows', () => {
     // split: sell pieces (4,499-89)+(5,499-109) - buy set 10,001 = -201
     expect(r.splitMargin).toBe(4_410 + 5_390 - 10_001);
     expect(r.best).toBe('combine');
+    expect(r.via).toBe('GE clerk');
     expect(r.volume1h).toBe(50); // least liquid leg is the set itself
+  });
+
+  it('resolves inventory combinables by name and tags them', () => {
+    const rows = computeSetRows(
+      [
+        item({ id: 200, name: 'Test godsword', low: 20_000, high: 25_000, volume1h: 40 }),
+        item({ id: 201, name: 'Test blade', low: 8_000, high: 9_000, volume1h: 90 }),
+        item({ id: 202, name: 'Test hilt', low: 10_000, high: 11_000, volume1h: 60 }),
+      ],
+      cfg,
+      [],
+      [{ result: 'Test godsword', pieces: ['Test blade', 'Test hilt'] }],
+    );
+    expect(rows).toHaveLength(1);
+    expect(rows[0]!.via).toBe('inventory');
+    // combine: 24,999 - tax 499 - (8,001 + 10,001) = 6,498
+    expect(rows[0]!.combineMargin).toBe(24_999 - 499 - 18_002);
+    expect(rows[0]!.volume1h).toBe(40);
   });
 
   it('skips sets with unresolved or unpriced legs', () => {
@@ -92,9 +112,10 @@ describe('computeSetRows', () => {
       ],
       cfg,
       [setDef],
+      [],
     );
     expect(noPrices).toHaveLength(0);
-    expect(computeSetRows([], cfg, [setDef])).toHaveLength(0);
+    expect(computeSetRows([], cfg, [setDef], [])).toHaveLength(0);
   });
 });
 
@@ -105,6 +126,7 @@ describe('computeMethodRows', () => {
     category: 'Herblore',
     members: true,
     intensity: 'high',
+    atGE: true,
     requirements: [{ skill: 'Herblore', level: 60 }],
     inputs: [{ name: 'Grimy test', qty: 1 }],
     outputs: [{ name: 'Clean test', qty: 1 }],

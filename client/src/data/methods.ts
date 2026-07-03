@@ -18,6 +18,8 @@ export interface MethodDef {
   members: boolean;
   /** How much attention it demands. */
   intensity: 'low' | 'medium' | 'high';
+  /** True when the whole loop is doable standing at the GE (inventory only). */
+  atGE: boolean;
   requirements: SkillReq[];
   /** GE item names + quantity consumed per action. */
   inputs: { name: string; qty: number }[];
@@ -35,13 +37,36 @@ const herb = (herbName: string, level: number): MethodDef => ({
   category: 'Herblore',
   members: true,
   intensity: 'high',
+  atGE: true,
   requirements: [{ skill: 'Herblore', level }],
   inputs: [{ name: `Grimy ${herbName}`, qty: 1 }],
   outputs: [{ name: herbName.charAt(0).toUpperCase() + herbName.slice(1), qty: 1 }],
   actionsPerHour: 2_300,
 });
 
+const poison = (ammo: string): MethodDef => ({
+  id: `poison-${ammo.toLowerCase().replaceAll(' ', '-')}`,
+  name: `Poison ${ammo.toLowerCase()}s (p++)`,
+  category: 'No skill',
+  members: true,
+  intensity: 'high',
+  atGE: true,
+  requirements: [],
+  inputs: [
+    { name: ammo, qty: 5 },
+    { name: 'Weapon poison(++)', qty: 1 },
+  ],
+  outputs: [{ name: `${ammo}(p++)`, qty: 5 }],
+  actionsPerHour: 4_800,
+  notes: 'One vial poisons 5 ammo per click; pure GE bankstanding.',
+});
+
 export const METHODS: MethodDef[] = [
+  // --- No skill: poisoning ammunition (GE bankstand) ---
+  poison('Dragon arrow'),
+  poison('Dragon dart'),
+  poison('Amethyst arrow'),
+  poison('Dragon knife'),
   // --- Herblore: cleaning ---
   herb('ranarr weed', 25),
   herb('toadflax', 30),
@@ -55,6 +80,7 @@ export const METHODS: MethodDef[] = [
   // --- Herblore: potions (low intensity) ---
   {
     id: 'unf-ranarr',
+    atGE: true,
     name: 'Make ranarr potions (unf)',
     category: 'Herblore',
     members: true,
@@ -69,6 +95,7 @@ export const METHODS: MethodDef[] = [
   },
   {
     id: 'prayer-potion',
+    atGE: true,
     name: 'Mix prayer potions',
     category: 'Herblore',
     members: true,
@@ -83,6 +110,7 @@ export const METHODS: MethodDef[] = [
   },
   {
     id: 'super-restore',
+    atGE: true,
     name: 'Mix super restores',
     category: 'Herblore',
     members: true,
@@ -97,6 +125,7 @@ export const METHODS: MethodDef[] = [
   },
   {
     id: 'saradomin-brew',
+    atGE: true,
     name: 'Mix saradomin brews',
     category: 'Herblore',
     members: true,
@@ -112,6 +141,7 @@ export const METHODS: MethodDef[] = [
   // --- Cooking ---
   {
     id: 'cook-karambwan',
+    atGE: false,
     name: 'Cook karambwan',
     category: 'Cooking',
     members: true,
@@ -124,6 +154,7 @@ export const METHODS: MethodDef[] = [
   },
   {
     id: 'cook-shark',
+    atGE: false,
     name: 'Cook sharks',
     category: 'Cooking',
     members: true,
@@ -136,6 +167,7 @@ export const METHODS: MethodDef[] = [
   },
   {
     id: 'cook-anglerfish',
+    atGE: false,
     name: 'Cook anglerfish',
     category: 'Cooking',
     members: true,
@@ -149,6 +181,7 @@ export const METHODS: MethodDef[] = [
   // --- Fletching ---
   {
     id: 'headless-arrows',
+    atGE: true,
     name: 'Make headless arrows',
     category: 'Fletching',
     members: true,
@@ -164,6 +197,7 @@ export const METHODS: MethodDef[] = [
   },
   {
     id: 'string-yew',
+    atGE: true,
     name: 'String yew longbows',
     category: 'Fletching',
     members: true,
@@ -178,6 +212,7 @@ export const METHODS: MethodDef[] = [
   },
   {
     id: 'string-magic',
+    atGE: true,
     name: 'String magic longbows',
     category: 'Fletching',
     members: true,
@@ -193,6 +228,7 @@ export const METHODS: MethodDef[] = [
   // --- Crafting ---
   {
     id: 'cut-dragonstone',
+    atGE: true,
     name: 'Cut dragonstones',
     category: 'Crafting',
     members: true,
@@ -204,6 +240,7 @@ export const METHODS: MethodDef[] = [
   },
   {
     id: 'air-battlestaff',
+    atGE: true,
     name: 'Make air battlestaves',
     category: 'Crafting',
     members: true,
@@ -218,6 +255,7 @@ export const METHODS: MethodDef[] = [
   },
   {
     id: 'earth-battlestaff',
+    atGE: true,
     name: 'Make earth battlestaves',
     category: 'Crafting',
     members: true,
@@ -232,6 +270,7 @@ export const METHODS: MethodDef[] = [
   },
   {
     id: 'light-orbs',
+    atGE: true,
     name: 'Blow empty light orbs',
     category: 'Crafting',
     members: true,
@@ -244,6 +283,7 @@ export const METHODS: MethodDef[] = [
   // --- No-skill processing ---
   {
     id: 'tan-blue-dhide',
+    atGE: false,
     name: 'Tan blue dragonhide',
     category: 'No skill',
     members: true,
@@ -257,6 +297,7 @@ export const METHODS: MethodDef[] = [
   },
   {
     id: 'tan-black-dhide',
+    atGE: false,
     name: 'Tan black dragonhide',
     category: 'No skill',
     members: true,
@@ -270,6 +311,7 @@ export const METHODS: MethodDef[] = [
   },
   {
     id: 'sawmill-mahogany',
+    atGE: false,
     name: 'Make mahogany planks (sawmill)',
     category: 'No skill',
     members: true,
@@ -284,6 +326,7 @@ export const METHODS: MethodDef[] = [
   // --- Smithing ---
   {
     id: 'bf-runite',
+    atGE: false,
     name: 'Smelt runite bars (Blast Furnace)',
     category: 'Smithing',
     members: true,
@@ -301,6 +344,7 @@ export const METHODS: MethodDef[] = [
   // --- Magic ---
   {
     id: 'superglass',
+    atGE: true,
     name: 'Cast Superglass Make',
     category: 'Magic',
     members: true,
@@ -319,6 +363,7 @@ export const METHODS: MethodDef[] = [
   },
   {
     id: 'charge-fire-orbs',
+    atGE: false,
     name: 'Charge fire orbs',
     category: 'Magic',
     members: true,

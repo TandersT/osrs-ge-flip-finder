@@ -236,6 +236,26 @@ free); **premium sells scale + long-horizon analytics**:
   account-less license keys validated server-side (SQLite), Phase 2 accounts only if
   cross-device sync demands it. 5 new e2e specs cover caps, teaser, locks, unlock, bad codes.
 
+## Post-completion: GE-only restriction on tools (2026-07-03)
+
+Stefan wants tools restricted to what's doable AT the Grand Exchange. Applied:
+
+- **Ornament kits and nightmare staves rejected by the restriction itself**: verified
+  against /mapping that no (or)/(g) ornamented variant nor any assembled nightmare staff
+  is GE-tradeable — the arbitrage I proposed doesn't exist. The tradeability check against
+  the mapping is now the gate for any combinable idea.
+- **Godsword assembly added** (hilt + blade ↔ godsword, all six items GE-tradeable,
+  dismantle confirmed on the wiki, pure inventory click): `data/combines.ts`, resolved by
+  name at compute time and tagged `via: 'inventory'` vs sets' `'GE clerk'` (new Via
+  column). Illiquid (hilts trade ~0–2/h) — the default vol/1h floor of 10 hides them,
+  by design; drop the floor to see them.
+- **Barrows repair and cannonballs dropped** (Bob/POH and furnace are not at the GE).
+- **`atGE` flag on every method** + a "GE-only (bankstand)" toggle, DEFAULT ON per the
+  restriction (cooking/tanning/BF/sawmill/fire orbs hidden until toggled off).
+- **Poisoning ammunition added** (4 methods: dragon arrow/dart/knife, amethyst arrow):
+  1 Weapon poison(++) per 5 ammo per click, no requirements — recipe verified on the
+  wiki's money-making guide (~2M/hr there); pure GE bankstanding.
+
 ## Post-completion: set combining, AFK methods, character import (2026-07-03)
 
 - **Set combining** (`/tools?tool=sets`): GE clerks exchange sets <-> pieces for free, so

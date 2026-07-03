@@ -1,5 +1,6 @@
 import type { AppConfig, ItemSnapshot } from '@osrs-flip/shared';
 import { geTax } from '@osrs-flip/shared';
+import { COMBINES, type CombineDef } from '../data/combines';
 import { ITEM_SETS, type ItemSetDef } from '../data/itemSets';
 import { METHODS, type MethodDef } from '../data/methods';
 
@@ -54,6 +55,8 @@ export interface DecantRow {
 export interface SetRow {
   def: ItemSetDef;
   set: ItemSnapshot;
+  /** How the exchange happens — both are doable at the GE. */
+  via: 'GE clerk' | 'inventory';
   /** Buy the pieces, exchange at a GE clerk, sell the set (post-tax). */
   combineMargin: number;
   /** Buy the set, exchange, sell the pieces (post-tax each). */
@@ -72,11 +75,34 @@ export function computeSetRows(
   items: ItemSnapshot[],
   cfg: AppConfig,
   sets: ItemSetDef[] = ITEM_SETS,
+  combos: CombineDef[] = COMBINES,
 ): SetRow[] {
   const byId = new Map(items.map((i) => [i.id, i]));
+  const byName = new Map(items.map((i) => [i.name, i]));
   const rows: SetRow[] = [];
 
-  for (const def of sets) {
+  // inventory combinables resolve by name; unresolvable ones are skipped
+  const comboDefs: { def: ItemSetDef; via: SetRow['via'] }[] = [];
+  for (const c of combos) {
+    const result = byName.get(c.result);
+    const pieces = c.pieces.map((n) => byName.get(n));
+    if (!result || pieces.some((p) => p === undefined)) continue;
+    comboDefs.push({
+      def: {
+        setId: result.id,
+        setName: result.name,
+        pieces: (pieces as ItemSnapshot[]).map((p) => ({ id: p.id, name: p.name })),
+      },
+      via: 'inventory',
+    });
+  }
+
+  const all: { def: ItemSetDef; via: SetRow['via'] }[] = [
+    ...sets.map((def) => ({ def, via: 'GE clerk' as const })),
+    ...comboDefs,
+  ];
+
+  for (const { def, via } of all) {
     const set = byId.get(def.setId);
     const pieces = def.pieces.map((p) => byId.get(p.id));
     if (!set || pieces.some((p) => p === undefined)) continue;
@@ -101,6 +127,7 @@ export function computeSetRows(
     const best = combineMargin >= splitMargin ? 'combine' : 'split';
     rows.push({
       def,
+      via,
       set,
       combineMargin,
       splitMargin,

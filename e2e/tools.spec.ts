@@ -4,7 +4,7 @@ test('set combining: teaser for free, full table + direction badges for premium'
   await page.goto('/tools?tool=sets');
   await page.waitForSelector('tbody tr', { timeout: 30_000 });
   expect(await page.locator('tbody tr').count()).toBeLessThanOrEqual(5);
-  await expect(page.getByText(/more item sets/)).toBeVisible();
+  await expect(page.getByText(/more combinables/)).toBeVisible();
 
   // unlock premium -> full table
   await page.goto('/premium');
@@ -49,7 +49,7 @@ test('AFK methods: character import gates requirements', async ({ page }) => {
   // "only mine" filters out unmet requirements (e.g. Crafting 87 light orbs)
   await page.getByText('Only methods I can do').click();
   await expect(page.getByText('Blow empty light orbs')).toHaveCount(0);
-  await expect(page.getByText('Cook sharks')).toBeVisible();
+  await expect(page.getByText('Mix prayer potions')).toBeVisible();
 });
 
 test('hiscores errors surface cleanly', async ({ page }) => {

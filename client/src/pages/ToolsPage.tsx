@@ -104,6 +104,7 @@ export default function ToolsPage() {
   const tool = (params.get('tool') as Tool) || 'alch';
   const [minVolume, setMinVolume] = useState(10);
   const [onlyMine, setOnlyMine] = useState(false);
+  const [geOnly, setGeOnly] = useState(true);
 
   const alchRows = useMemo(
     () => (data && tool === 'alch' ? computeAlchRows(data.items, config).filter((r) => r.item.volume1h >= minVolume) : []),
@@ -122,9 +123,10 @@ export default function ToolsPage() {
     let rows = computeMethodRows(data.items, config, character?.levels).filter(
       (r) => r.volume1h >= minVolume,
     );
+    if (geOnly) rows = rows.filter((r) => r.def.atGE);
     if (onlyMine && character) rows = rows.filter((r) => r.meetsReqs);
     return rows;
-  }, [data, config, tool, minVolume, character, onlyMine]);
+  }, [data, config, tool, minVolume, character, onlyMine, geOnly]);
 
   const visibleAlch = entitlements.alchRows === null ? alchRows : alchRows.slice(0, entitlements.alchRows);
   const visibleDecant = entitlements.decantRows === null ? decantRows : decantRows.slice(0, entitlements.decantRows);
@@ -154,7 +156,7 @@ export default function ToolsPage() {
       <div className="flex flex-wrap items-center gap-2">
         {toolButton('alch', '🔮 High alchemy')}
         {toolButton('decant', '🧪 Decanting')}
-        {toolButton('sets', '🛡️ Set combining')}
+        {toolButton('sets', '🛡️ Combining')}
         {toolButton('methods', '😴 AFK methods')}
         <label className="ml-auto flex items-center gap-2 text-xs">
           <span className="uppercase tracking-wide opacity-60">Min vol/1h</span>
@@ -272,14 +274,16 @@ export default function ToolsPage() {
       ) : tool === 'sets' ? (
         <>
           <p className="text-xs opacity-50">
-            GE clerks exchange sets ↔ pieces for free (right-click “Sets”) — any price gap is
-            arbitrage · margins shown after tax · throughput bound by the least liquid leg
+            everything here is doable without leaving the GE: clerks exchange armour sets
+            (right-click “Sets”), godswords assemble/dismantle with an inventory click ·
+            margins shown after tax · throughput bound by the least liquid leg
           </p>
           <section className="overflow-auto rounded border border-panel-border bg-panel">
             <table className="w-full min-w-[860px] border-collapse text-sm">
               <thead className="bg-panel-light">
                 <tr>
-                  <th className={th(false)}>Set</th>
+                  <th className={th(false)}>Set / combo</th>
+                  <th className={th(false)}>Via</th>
                   <th className={th(false)}>Best move</th>
                   <th className={th(true)}>Combine margin</th>
                   <th className={th(true)}>Split margin</th>
@@ -298,6 +302,11 @@ export default function ToolsPage() {
                       <span className="flex items-center gap-2">
                         <ItemIcon icon={r.set.icon} name={r.set.name} />
                         {r.set.name}
+                      </span>
+                    </td>
+                    <td className={td}>
+                      <span className="rounded bg-panel-light px-1.5 py-0.5 text-[11px] uppercase tracking-wide opacity-70">
+                        {r.via}
                       </span>
                     </td>
                     <td className={td}>
@@ -330,12 +339,21 @@ export default function ToolsPage() {
               <div className="p-10 text-center text-sm opacity-60">No priced sets at this volume floor.</div>
             )}
           </section>
-          <TeaserStrip hidden={setRows.length - visibleSets.length} what="item sets, ranked by margin" />
+          <TeaserStrip hidden={setRows.length - visibleSets.length} what="combinables, ranked by margin" />
         </>
       ) : (
         <>
           <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
             <CharacterImport />
+            <label className="flex cursor-pointer items-center gap-1.5 text-xs" title="Only methods doable standing at the Grand Exchange (inventory actions, no ranges/furnaces/NPC runs)">
+              <input
+                type="checkbox"
+                checked={geOnly}
+                onChange={(e) => setGeOnly(e.target.checked)}
+                className="accent-gold"
+              />
+              <span>GE-only (bankstand)</span>
+            </label>
             {character && (
               <label className="flex cursor-pointer items-center gap-1.5 text-xs">
                 <input
@@ -350,7 +368,8 @@ export default function ToolsPage() {
           </div>
           <p className="text-xs opacity-50">
             buy inputs on the GE, apply a skill, sell outputs — profit is live, post-tax ·
-            rates are wiki-guide estimates · import your character to check requirements
+            rates are wiki-guide estimates · GE-only shows pure bankstand methods · import
+            your character to check requirements
           </p>
           <section className="overflow-auto rounded border border-panel-border bg-panel">
             <table className="w-full min-w-[920px] border-collapse text-sm">
