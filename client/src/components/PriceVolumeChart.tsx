@@ -5,6 +5,7 @@ import {
   CartesianGrid,
   Line,
   LineChart,
+  ReferenceLine,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -89,9 +90,15 @@ function TooltipContent({
 export function PriceVolumeChart({
   points,
   timestep,
+  currentHigh,
+  currentLow,
 }: {
   points: TimeseriesPoint[];
   timestep: Timestep;
+  /** Live insta-buy price — drawn as a dashed reference line. */
+  currentHigh?: number | null;
+  /** Live insta-sell price — drawn as a dashed reference line. */
+  currentLow?: number | null;
 }) {
   const data: ChartPoint[] = useMemo(
     () =>
@@ -138,6 +145,15 @@ export function PriceVolumeChart({
           <span className="inline-block h-2 w-2 rounded-sm" style={{ background: VOLUME_COLOR }} />
           Volume
         </span>
+        {(currentHigh != null || currentLow != null) && (
+          <span className="flex items-center gap-1.5 opacity-70">
+            <span
+              className="inline-block w-4 border-t-2 border-dashed"
+              style={{ borderColor: AXIS_TEXT }}
+            />
+            Live price
+          </span>
+        )}
       </div>
       <ResponsiveContainer width="100%" height={280}>
         <LineChart data={data} syncId="item-detail" margin={{ top: 8, right: 12, left: 8, bottom: 0 }}>
@@ -156,6 +172,24 @@ export function PriceVolumeChart({
             cursor={{ stroke: AXIS_TEXT, strokeDasharray: '3 3' }}
             isAnimationActive={false}
           />
+          {currentHigh != null && (
+            <ReferenceLine
+              y={currentHigh}
+              stroke={HIGH_COLOR}
+              strokeDasharray="5 5"
+              strokeOpacity={0.55}
+              ifOverflow="extendDomain"
+            />
+          )}
+          {currentLow != null && (
+            <ReferenceLine
+              y={currentLow}
+              stroke={LOW_COLOR}
+              strokeDasharray="5 5"
+              strokeOpacity={0.55}
+              ifOverflow="extendDomain"
+            />
+          )}
           <Line type="monotone" dataKey="high" stroke={HIGH_COLOR} strokeWidth={2} dot={false} isAnimationActive={false} />
           <Line type="monotone" dataKey="low" stroke={LOW_COLOR} strokeWidth={2} dot={false} isAnimationActive={false} />
         </LineChart>

@@ -1,4 +1,4 @@
-import { useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   createColumnHelper,
   flexRender,
@@ -24,6 +24,21 @@ function numCell(value: number | null | undefined) {
 export function rowMid(row: FlipRow): number | null {
   if (row.high !== null && row.low !== null) return (row.high + row.low) / 2;
   return row.high ?? row.low;
+}
+
+/** Gp amount that briefly tints when the underlying price moved on refresh. */
+function FlashCell({ value, move }: { value: number | null; move: -1 | 0 | 1 }) {
+  return (
+    <span
+      // re-key on the value so the CSS animation restarts on every change
+      key={value ?? 'none'}
+      className={`-mx-1 inline-block rounded px-1 ${
+        move === 1 ? 'flash-up' : move === -1 ? 'flash-down' : ''
+      }`}
+    >
+      <GpText amount={value} />
+    </span>
+  );
 }
 
 function FlagBadge({ label, className, title }: { label: string; className: string; title: string }) {
@@ -86,14 +101,18 @@ export function buildColumns({ nowSec, isWatched, onToggleWatch, sinceAdded }: T
       id: 'buyAt',
       meta: { align: 'right', title: 'What you pay: latest insta-sell price + 1 gp' },
       header: 'Buy',
-      cell: (info) => <GpText amount={info.getValue() ?? null} />,
+      cell: (info) => (
+        <FlashCell value={info.getValue() ?? null} move={info.row.original.buyMove} />
+      ),
       sortUndefined: 'last',
     }),
     col.accessor((r) => r.flip?.sellAt ?? undefined, {
       id: 'sellAt',
       meta: { align: 'right', title: 'What you list at: latest insta-buy price − 1 gp' },
       header: 'Sell',
-      cell: (info) => <GpText amount={info.getValue() ?? null} />,
+      cell: (info) => (
+        <FlashCell value={info.getValue() ?? null} move={info.row.original.sellMove} />
+      ),
       sortUndefined: 'last',
     }),
     col.accessor((r) => r.flip?.marginPerItem ?? undefined, {
@@ -255,6 +274,36 @@ export function FlipTable({ rows, context, sorting, onSortingChange }: FlipTable
     estimateSize: () => 40,
     overscan: 12,
   });
+
+  // ↑/↓ walk the (sorted, filtered) rows, Enter opens, Escape clears
+  const [activeIndex, setActiveIndex] = useState<number | null>(null);
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const t = e.target as HTMLElement | null;
+      if (
+        t instanceof HTMLInputElement ||
+        t instanceof HTMLTextAreaElement ||
+        t instanceof HTMLSelectElement
+      ) {
+        return;
+      }
+      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+        if (tableRows.length === 0) return;
+        e.preventDefault();
+        const delta = e.key === 'ArrowDown' ? 1 : -1;
+        const next = Math.min(Math.max((activeIndex ?? -1) + delta, 0), tableRows.length - 1);
+        setActiveIndex(next);
+        virtualizer.scrollToIndex(next, { align: 'auto' });
+      } else if (e.key === 'Enter' && activeIndex !== null) {
+        const row = tableRows[activeIndex];
+        if (row) navigate(`/item/${row.original.id}`);
+      } else if (e.key === 'Escape') {
+        setActiveIndex(null);
+      }
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [tableRows, activeIndex, virtualizer, navigate]);
   const virtualItems = virtualizer.getVirtualItems();
   const paddingTop = virtualItems.length > 0 ? virtualItems[0]!.start : 0;
   const paddingBottom =
@@ -305,7 +354,9 @@ export function FlipTable({ rows, context, sorting, onSortingChange }: FlipTable
               <tr
                 key={row.original.id}
                 onClick={() => navigate(`/item/${row.original.id}`)}
-                className="h-10 cursor-pointer border-t border-panel-border/50 hover:bg-panel-light"
+                className={`h-10 cursor-pointer border-t border-panel-border/50 hover:bg-panel-light ${
+                  vi.index === activeIndex ? 'bg-panel-light outline outline-1 -outline-offset-1 outline-gold/60' : ''
+                }`}
               >
                 {row.getVisibleCells().map((cell) => (
                   <td

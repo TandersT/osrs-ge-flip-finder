@@ -5,3 +5,33 @@
 body {
   @apply bg-ink text-parchment antialiased;
 }
+
+/* Brief cell tint when a live price moves between refreshes */
+@keyframes flash-up {
+  from {
+    background-color: rgb(0 255 128 / 0.22);
+  }
+  to {
+    background-color: transparent;
+  }
+}
+@keyframes flash-down {
+  from {
+    background-color: rgb(255 107 107 / 0.22);
+  }
+  to {
+    background-color: transparent;
+  }
+}
+.flash-up {
+  animation: flash-up 1.8s ease-out;
+}
+.flash-down {
+  animation: flash-down 1.8s ease-out;
+}
+@media (prefers-reduced-motion: reduce) {
+  .flash-up,
+  .flash-down {
+    animation: none;
+  }
+}

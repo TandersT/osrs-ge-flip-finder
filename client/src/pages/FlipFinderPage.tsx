@@ -1,8 +1,8 @@
-import { useCallback, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import type { SortingState } from '@tanstack/react-table';
 import { useAppConfig, useItems } from '../lib/api';
-import { applyFilters, buildRows, type Filters } from '../lib/rows';
+import { applyFilters, buildRows, type Filters, type PrevPrices } from '../lib/rows';
 import { filtersFromParams, paramsFromState, sortingFromParams } from '../lib/urlState';
 import { useWatchlist } from '../lib/watchlist';
 import { FilterBar } from '../components/FilterBar';
@@ -35,11 +35,19 @@ export default function FlipFinderPage() {
     [setSearchParams, filters, sorting],
   );
 
+  // Prices from the previous refresh, so changed cells can flash
+  const prevPricesRef = useRef<PrevPrices | undefined>(undefined);
   const nowSec = useMemo(() => Math.floor(Date.now() / 1000), [data]);
   const rows = useMemo(
-    () => (data ? buildRows(data.items, config, nowSec) : []),
+    () => (data ? buildRows(data.items, config, nowSec, prevPricesRef.current) : []),
     [data, config, nowSec],
   );
+  useEffect(() => {
+    if (!data) return;
+    prevPricesRef.current = new Map(
+      data.items.map((i) => [i.id, { low: i.low, high: i.high }]),
+    );
+  }, [data]);
   const filtered = useMemo(() => applyFilters(rows, filters), [rows, filters]);
   const tableContext: TableContext = useMemo(
     () => ({ nowSec, isWatched, onToggleWatch: (row) => toggle(row.id, rowMid(row)) }),

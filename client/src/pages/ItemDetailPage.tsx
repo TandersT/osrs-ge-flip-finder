@@ -47,6 +47,7 @@ export default function ItemDetailPage() {
   const id = Number(idParam);
   const config = useAppConfig();
   const [timestep, setTimestep] = useState<Timestep>('1h');
+  const [range, setRange] = useState<'1m' | '3m' | 'all'>('3m');
   const { isWatched, toggle } = useWatchlist();
 
   const items = useItems(config.clientRefreshSeconds);
@@ -65,6 +66,15 @@ export default function ItemDetailPage() {
     () => (item && daily.data ? computeItemStats(daily.data.data, item) : null),
     [daily.data, item],
   );
+
+  // The 24h series is ~a year; the range chips window it client-side
+  const chartPoints = useMemo(() => {
+    const pts = chart.data?.data ?? [];
+    if (timestep !== '24h' || range === 'all' || pts.length === 0) return pts;
+    const days = range === '1m' ? 30 : 90;
+    const last = pts[pts.length - 1]!.timestamp;
+    return pts.filter((p) => p.timestamp >= last - days * 86_400);
+  }, [chart.data, timestep, range]);
 
   useEffect(() => {
     document.title = item ? `${item.name} — GE Flip Finder` : 'GE Flip Finder — OSRS';
@@ -167,7 +177,7 @@ export default function ItemDetailPage() {
       <div className="grid gap-4 lg:grid-cols-3">
         <div className="lg:col-span-2">
           <Panel title="Price & volume">
-            <div className="mb-3 flex gap-1">
+            <div className="mb-3 flex flex-wrap items-center gap-1">
               {TIMESTEPS.map((ts) => (
                 <button
                   key={ts}
@@ -181,6 +191,23 @@ export default function ItemDetailPage() {
                   {ts}
                 </button>
               ))}
+              {timestep === '24h' && (
+                <span className="ml-2 flex items-center gap-1 border-l border-panel-border pl-2">
+                  {(['1m', '3m', 'all'] as const).map((r) => (
+                    <button
+                      key={r}
+                      onClick={() => setRange(r)}
+                      className={`rounded px-2 py-1 text-xs ${
+                        r === range
+                          ? 'bg-panel-light text-gold'
+                          : 'text-parchment/50 hover:text-parchment'
+                      }`}
+                    >
+                      {r === 'all' ? '1y' : r}
+                    </button>
+                  ))}
+                </span>
+              )}
             </div>
             {chart.isPending ? (
               <ChartSkeleton />
@@ -189,7 +216,12 @@ export default function ItemDetailPage() {
                 Failed to load history: {(chart.error as Error).message}
               </div>
             ) : (
-              <PriceVolumeChart points={chart.data.data} timestep={timestep} />
+              <PriceVolumeChart
+                points={chartPoints}
+                timestep={timestep}
+                currentHigh={item.high}
+                currentLow={item.low}
+              />
             )}
           </Panel>
         </div>

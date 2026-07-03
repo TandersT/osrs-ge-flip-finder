@@ -12,6 +12,17 @@ export interface FlipRow extends ItemSnapshot {
   isThin: boolean;
   /** Latest prices disagree sharply with the 1h average. */
   isUnstable: boolean;
+  /** Direction the buy side (insta-sell) moved since the previous refresh. */
+  buyMove: -1 | 0 | 1;
+  /** Direction the sell side (insta-buy) moved since the previous refresh. */
+  sellMove: -1 | 0 | 1;
+}
+
+export type PrevPrices = Map<number, { low: number | null; high: number | null }>;
+
+function move(current: number | null, previous: number | null | undefined): -1 | 0 | 1 {
+  if (current === null || previous === null || previous === undefined) return 0;
+  return Math.sign(current - previous) as -1 | 0 | 1;
 }
 
 /** "Thin" = ROI at least this… */
@@ -26,9 +37,18 @@ function deviates(latest: number | null, hourAvg: number | null): boolean {
   return Math.abs(latest - hourAvg) / hourAvg > UNSTABLE_DEVIATION;
 }
 
-/** Compute flip economics for every item snapshot. `nowSec` fixes "age" per refresh. */
-export function buildRows(items: ItemSnapshot[], cfg: AppConfig, nowSec: number): FlipRow[] {
+/**
+ * Compute flip economics for every item snapshot. `nowSec` fixes "age" per
+ * refresh; `prev` (prices from the previous refresh) enables change flashes.
+ */
+export function buildRows(
+  items: ItemSnapshot[],
+  cfg: AppConfig,
+  nowSec: number,
+  prev?: PrevPrices,
+): FlipRow[] {
   return items.map((item) => {
+    const prevPrices = prev?.get(item.id);
     // 0 recent volume is a real zero, not "unknown": fall back to the daily
     // average, else feasible quantity legitimately becomes 0 (dead item).
     const volumePer4h =
@@ -65,6 +85,8 @@ export function buildRows(items: ItemSnapshot[], cfg: AppConfig, nowSec: number)
         item.volume1h < THIN_MAX_VOLUME_1H,
       isUnstable:
         deviates(item.high, item.avgHighPrice1h) || deviates(item.low, item.avgLowPrice1h),
+      buyMove: move(item.low, prevPrices?.low),
+      sellMove: move(item.high, prevPrices?.high),
     };
   });
 }
