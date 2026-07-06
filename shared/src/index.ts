@@ -8,3 +8,4 @@ export * from './tiers.js';
 export * from './rows.js';
 export * from './methods.js';
 export * from './dealTypes.js';
+export * from './patchTypes.js';

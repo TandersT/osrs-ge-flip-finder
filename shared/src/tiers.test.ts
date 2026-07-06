@@ -31,4 +31,9 @@ describe('entitlements', () => {
     expect(atLimit(4, 5)).toBe(false);
     expect(atLimit(9_999, null)).toBe(false);
   });
+
+  it('gates patch analysis to premium only', () => {
+    expect(getEntitlements('free').patchAnalysis).toBe(false);
+    expect(getEntitlements('premium').patchAnalysis).toBe(true);
+  });
 });

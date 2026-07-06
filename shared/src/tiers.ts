@@ -41,6 +41,8 @@ export interface Entitlements {
   logAnalytics: boolean;
   /** Max saved filter presets; null = unlimited. */
   savedFiltersMax: number | null;
+  /** Patch Impact: patch winners/losers + upcoming watchlist (/patches). */
+  patchAnalysis: boolean;
 }
 
 export const ENTITLEMENTS: Record<Tier, Entitlements> = {
@@ -61,6 +63,7 @@ export const ENTITLEMENTS: Record<Tier, Entitlements> = {
     allocator: false,
     logAnalytics: false,
     savedFiltersMax: 1,
+    patchAnalysis: false,
   },
   premium: {
     watchlistMax: null,
@@ -79,6 +82,7 @@ export const ENTITLEMENTS: Record<Tier, Entitlements> = {
     allocator: true,
     logAnalytics: true,
     savedFiltersMax: null,
+    patchAnalysis: true,
   },
 };
 
