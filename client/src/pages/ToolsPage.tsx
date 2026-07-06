@@ -12,6 +12,7 @@ import {
 import { useCharacter } from '../lib/character';
 import { useTier } from '../lib/tier';
 import { GpText } from '../components/GpText';
+import { Icon, type IconName } from '../components/Icon';
 import { ItemIcon } from '../components/ItemIcon';
 import { TableSkeleton } from '../components/Skeleton';
 import { UnlockStrip } from '../components/UnlockStrip';
@@ -57,14 +58,20 @@ function CharacterImport() {
     return (
       <span className="flex items-center gap-2 text-xs">
         <span className="rounded bg-panel-light px-2 py-1">
-          ⚔️ <span className="font-medium text-gold">{character.name}</span>
+          <Icon name="sword" className="mr-1" />
+          <span className="font-medium text-gold">{character.name}</span>
           <span className="ml-1 opacity-60">
             (Herb {character.levels.Herblore ?? 1} · Craft {character.levels.Crafting ?? 1} ·
             Magic {character.levels.Magic ?? 1})
           </span>
         </span>
-        <button onClick={clear} className="text-parchment/40 hover:text-osrs-red" title="Forget character">
-          ✕
+        <button
+          onClick={clear}
+          className="text-parchment/40 hover:text-osrs-red"
+          title="Forget character"
+          aria-label="Forget character"
+        >
+          <Icon name="close" size={12} />
         </button>
       </span>
     );
@@ -140,13 +147,14 @@ export default function ToolsPage() {
   const visibleSets = entitlements.setRows === null ? setRows : setRows.slice(0, entitlements.setRows);
   const visibleMethods = entitlements.methodRows === null ? methodRows : methodRows.slice(0, entitlements.methodRows);
 
-  const toolButton = (value: Tool, label: string) => (
+  const toolButton = (value: Tool, label: string, icon: IconName) => (
     <button
       onClick={() => setParams(value === 'alch' ? {} : { tool: value }, { replace: true })}
       className={`rounded px-3 py-1.5 text-sm font-medium ${
         tool === value ? 'bg-gold text-ink' : 'bg-panel-light text-parchment/70 hover:text-parchment'
       }`}
     >
+      <Icon name={icon} className="mr-1.5" />
       {label}
     </button>
   );
@@ -161,10 +169,10 @@ export default function ToolsPage() {
       </header>
 
       <div className="flex flex-wrap items-center gap-2">
-        {toolButton('alch', '🔮 High alchemy')}
-        {toolButton('decant', '🧪 Decanting')}
-        {toolButton('sets', '🛡️ Combining')}
-        {toolButton('methods', '😴 AFK methods')}
+        {toolButton('alch', 'High alchemy', 'sparkle')}
+        {toolButton('decant', 'Decanting', 'flask')}
+        {toolButton('sets', 'Combining', 'shield')}
+        {toolButton('methods', 'AFK methods', 'moon')}
         <label className="ml-auto flex items-center gap-2 text-xs">
           <span className="uppercase tracking-wide opacity-60">Min vol/1h</span>
           <input
@@ -326,13 +334,13 @@ export default function ToolsPage() {
                       </span>
                     </td>
                     <td className={td}>
-                      <span className="rounded bg-panel-light px-1.5 py-0.5 text-[11px] uppercase tracking-wide opacity-70">
+                      <span className="rounded bg-panel-light px-1.5 py-0.5 text-[10px] uppercase tracking-wide opacity-70">
                         {r.via}
                       </span>
                     </td>
                     <td className={td}>
                       <span
-                        className={`rounded px-1.5 py-0.5 text-[11px] uppercase tracking-wide ${
+                        className={`rounded px-1.5 py-0.5 text-[10px] uppercase tracking-wide ${
                           r.best === 'combine'
                             ? 'bg-emerald-900/60 text-emerald-300'
                             : 'bg-sky-900/60 text-sky-300'
@@ -459,7 +467,7 @@ export default function ToolsPage() {
                           r.def.requirements.map((req) => (
                             <span
                               key={req.skill}
-                              className={`mr-1 rounded px-1.5 py-0.5 text-[11px] ${
+                              className={`mr-1 rounded px-1.5 py-0.5 text-[10px] ${
                                 r.meetsReqs === null
                                   ? 'bg-panel-light text-parchment/70'
                                   : r.meetsReqs
@@ -473,7 +481,7 @@ export default function ToolsPage() {
                         )}
                       </td>
                       <td className={td}>
-                        <span className={`rounded px-1.5 py-0.5 text-[11px] uppercase tracking-wide ${badgeCls}`}>
+                        <span className={`rounded px-1.5 py-0.5 text-[10px] uppercase tracking-wide ${badgeCls}`}>
                           {label}
                         </span>
                       </td>

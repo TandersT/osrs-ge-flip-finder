@@ -3,6 +3,7 @@ import type { ItemSnapshot } from '@osrs-flip/shared';
 import { atLimit } from '@osrs-flip/shared';
 import { requestNotifyPermission, useAlerts, type AlertMetric, type AlertOp } from '../lib/alerts';
 import { useTier } from '../lib/tier';
+import { Icon } from './Icon';
 import { UpsellDialog } from './UpsellDialog';
 
 /** Inline "Set alert" control for an item page's flip panel. */
@@ -42,7 +43,7 @@ export function AlertForm({ item, defaultThreshold }: { item: ItemSnapshot; defa
           onClick={openForm}
           className="w-full rounded border border-panel-border px-3 py-1.5 text-center text-sm hover:border-gold hover:text-gold"
         >
-          🔔 {added ? 'Alert set — add another' : 'Set price alert'}
+          <Icon name="bell" className="mr-1" /> {added ? 'Alert set — add another' : 'Set price alert'}
         </button>
       ) : (
         <div className="flex flex-wrap items-center gap-1.5 rounded border border-panel-border p-2">

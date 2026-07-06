@@ -385,3 +385,46 @@ Stefan confirmed the intended account was `TandersT` (the `github-tanderst` SSH 
 account), created the empty private repo in the web UI, and the full history was pushed:
 `git@github-tanderst:TandersT/osrs-ge-flip-finder.git`, branch `main` tracking origin.
 The README fallback section was replaced with a plain repository pointer.
+
+## Post-completion: design rules + icon system (2026-07-03)
+
+Design-consistency review found the UI's glyphs were an ad-hoc mix (17 colored emoji,
+plus ✕/× and ⭐/★/☆ and ▲▼/▴▾ variants for the same purposes) and native browser chrome
+(number-input spinners, select arrow) clashed with the dark theme.
+
+- **`docs/design.md` is now the rulebook** — tokens, status-tint palette, icon semantics,
+  button/panel/type recipes. New UI copies a recipe from there.
+- **One icon system**: `client/src/components/Icon.tsx`, 24×24 stroke SVGs inheriting
+  `currentColor`. No emoji/dingbats in UI chrome; `×` stays as maths notation in
+  quantities. Chose hand-rolled paths over lucide-react to keep zero new dependencies and
+  full control of the look.
+- **Native controls**: number-input spin buttons hidden globally (the paired slider or
+  typing is the stepper — the up/down arrows were unthemeable); selects get a parchment
+  chevron via `appearance:none`.
+- Chart hex constants deduplicated into `client/src/lib/chartTheme.ts` (they were
+  re-declared in three files).
+- Kept, deliberately: the muted emerald/sky/purple/amber/zinc badge tints (documented with
+  fixed meanings — neon `osrs-*` colors are too loud at badge size), and the nav's
+  inverted active-tab style (gold fill stays reserved for actions).
+- e2e selectors that referenced glyphs updated ('Wiki ↗'→'Wiki', '★ grinders'→'grinders',
+  '✓ Sold'→'Sold', ⚔️ visibility → character name); `exact: true` added where the shorter
+  names now collide. Full suite green (35/35), typecheck + lint + unit tests clean.
+
+## Flag include/exclude filters + new market flags (2026-07-03)
+
+- **Tri-state flag filters** on the Flip Finder replace the three booleans
+  (`taxExemptOnly`/`hideStale`/`hideRisky` → one `flags` map): each flag chip cycles
+  any → only → hide. URL keeps one param per non-default flag (`stale=hide`,
+  `exempt=only`); legacy params (`exempt=1`, `nostale=1`, `norisk=1`) still parse so old
+  bookmarks work. "norisk" maps to thin+unstable hidden.
+- **Three new flags**, computed in `shared/buildRows` from data already in the snapshot:
+  `hot` (1h volume > 2× the pace implied by daily volume, ≥50 units floor), `rising` /
+  `falling` (latest mid ≥3% above/below the 1h-average mid — direction, where `unstable`
+  only captures magnitude ≥10% on either side). Rejected as flags: big-ticket, high-ROI,
+  members — they duplicate existing sliders/selects.
+- Flag presentation (label, tooltip, tints, row getter) lives once in
+  `client/src/lib/flags.ts`; table badges, phone-card text, and filter chips all render
+  from it. Badge vocabulary unified on "tax-free" (was exempt / tax exempt / tax-free in
+  three places).
+- Verified: new shared tests for the flag thresholds, urlState round-trip + legacy-param
+  tests, full e2e 35/35 green against the production build.

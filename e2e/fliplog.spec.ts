@@ -37,7 +37,7 @@ test('open position: log buy, live unrealized P&L, complete, gp/hour', async ({ 
 
   // complete at a fixed price: tax floor(1.2m/50)=24k -> profit (1.2m-1m-24k)*2 = 352k
   await openSection.locator('input[type="number"]').fill('1200000');
-  await openSection.getByRole('button', { name: '✓ Sold' }).click();
+  await openSection.getByRole('button', { name: 'Sold' }).click();
   await expect(openSection).toHaveCount(0);
   await expect(page.locator('section', { hasText: 'History' }).getByText('+352k')).toBeVisible();
 });

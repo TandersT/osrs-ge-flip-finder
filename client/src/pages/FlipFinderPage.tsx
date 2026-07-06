@@ -6,6 +6,7 @@ import { applyFilters, buildRows, type Filters, type PrevPrices } from '../lib/r
 import { filtersFromParams, paramsFromState, sortingFromParams } from '../lib/urlState';
 import { useGatedWatchlist } from '../lib/useGatedWatchlist';
 import { FilterBar } from '../components/FilterBar';
+import { Icon } from '../components/Icon';
 import { FlipTable, rowMid, type TableContext } from '../components/FlipTable';
 import { NewUserBanner } from '../components/NewUserBanner';
 import { RefreshIndicator } from '../components/RefreshIndicator';
@@ -65,7 +66,7 @@ export default function FlipFinderPage() {
   if (isError) {
     return (
       <div className="flex flex-col items-center gap-3 p-14 text-center">
-        <span className="text-3xl">⚠</span>
+        <Icon name="warning" size={32} className="text-parchment/40" />
         <p className="text-osrs-red">Failed to load prices: {(error as Error).message}</p>
         <button
           onClick={() => refetch()}

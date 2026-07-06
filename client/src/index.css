@@ -39,6 +39,28 @@ input[type='range']::-moz-range-thumb {
   border: 2px solid #8a5a00;
 }
 
+/* Number inputs: hide the native spin buttons — they can't be themed, and the
+   paired slider (or typing) is the stepper. */
+input[type='number']::-webkit-outer-spin-button,
+input[type='number']::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type='number'] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+/* Selects: replace the native arrow with a theme chevron (parchment @ 60%). */
+select {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23e2dbc8' stroke-opacity='0.6' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9.5l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.5rem center;
+  background-size: 0.9em;
+  padding-right: 1.9rem;
+}
+
 /* Brief cell tint when a live price moves between refreshes */
 @keyframes flash-up {
   from {

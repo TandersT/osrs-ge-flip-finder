@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ENTITLEMENTS, PRICING } from '@osrs-flip/shared';
 import { useTier } from '../lib/tier';
+import { Icon } from '../components/Icon';
 
 const FEATURES: { label: string; free: string; premium: string }[] = [
   { label: 'Live flip finder, filters & presets', free: '✓', premium: '✓' },
@@ -56,7 +57,9 @@ export default function PremiumPage() {
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-6">
       <header>
-        <h1 className="text-2xl font-bold text-gold">⭐ Premium</h1>
+        <h1 className="text-2xl font-bold text-gold">
+          <Icon name="sparkle" className="mr-1.5" /> Premium
+        </h1>
         <p className="mt-1 text-sm opacity-70">
           Everything you need to flip is free — and stays free. Premium is for when flipping
           becomes your grind: full history, the whole screener, and no limits on what you track.
@@ -65,7 +68,9 @@ export default function PremiumPage() {
 
       {tier === 'premium' && (
         <div className="flex items-center justify-between gap-3 rounded border border-emerald-700 bg-emerald-950/40 px-4 py-3 text-sm text-emerald-300">
-          <span>✓ Premium is active on this browser.</span>
+          <span>
+            <Icon name="check" className="mr-1" /> Premium is active on this browser.
+          </span>
           <button onClick={downgrade} className="text-xs underline opacity-70 hover:opacity-100">
             switch back to free
           </button>
@@ -115,8 +120,12 @@ export default function PremiumPage() {
             {FEATURES.map((f) => (
               <tr key={f.label} className="border-t border-panel-border/50">
                 <td className="px-4 py-2">{f.label}</td>
-                <td className="px-4 py-2 text-right opacity-70">{f.free}</td>
-                <td className="px-4 py-2 text-right text-gold">{f.premium}</td>
+                <td className="px-4 py-2 text-right opacity-70">
+                  <FeatureCell value={f.free} />
+                </td>
+                <td className="px-4 py-2 text-right text-gold">
+                  <FeatureCell value={f.premium} />
+                </td>
               </tr>
             ))}
           </tbody>
@@ -160,7 +169,9 @@ export default function PremiumPage() {
           </button>
         </div>
         {feedback === 'ok' && (
-          <p className="mt-2 text-sm text-osrs-green">Premium unlocked — enjoy! 🎉</p>
+          <p className="mt-2 text-sm text-osrs-green">
+            <Icon name="sparkle" className="mr-1" /> Premium unlocked — enjoy!
+          </p>
         )}
         {feedback === 'bad' && (
           <p className="mt-2 text-sm text-osrs-red">That code didn&apos;t match.</p>
@@ -177,4 +188,9 @@ export default function PremiumPage() {
       </p>
     </div>
   );
+}
+
+/** Feature-table cell values are data strings; '✓' renders as the themed check icon. */
+function FeatureCell({ value }: { value: string }) {
+  return value === '✓' ? <Icon name="check" size={13} aria-label="Included" /> : <>{value}</>;
 }

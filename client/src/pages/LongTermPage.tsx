@@ -3,10 +3,11 @@ import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import type { LongtermResponse, LongtermRow } from '@osrs-flip/shared';
 import { GpText } from '../components/GpText';
+import { Icon } from '../components/Icon';
 import { ItemIcon } from '../components/ItemIcon';
 import { TableSkeleton } from '../components/Skeleton';
+import { UnlockStrip } from '../components/UnlockStrip';
 import { useTier } from '../lib/tier';
-import { Link } from 'react-router-dom';
 
 type Lens = 'all' | 'dips' | 'momentum';
 
@@ -109,8 +110,8 @@ export default function LongTermPage() {
   return (
     <div className="flex flex-col gap-4">
       <div className="rounded border border-amber-700 bg-amber-950/50 px-3 py-2 text-sm text-amber-300">
-        ⚠ OSRS prices move on game updates — new content, Leagues, holiday events. These are
-        statistical signals, not guarantees.
+        <Icon name="warning" className="mr-1" /> OSRS prices move on game updates — new content,
+        Leagues, holiday events. These are statistical signals, not guarantees.
       </div>
 
       {data.status === 'building' && (
@@ -148,7 +149,13 @@ export default function LongTermPage() {
                   }`}
                 >
                   {c.label}
-                  {sortKey === c.key ? (sortDesc ? ' ▼' : ' ▲') : ''}
+                  {sortKey === c.key && (
+                    <Icon
+                      name={sortDesc ? 'chevron-down' : 'chevron-up'}
+                      size={12}
+                      className="ml-1"
+                    />
+                  )}
                 </th>
               ))}
               <th className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-gold">Signals</th>
@@ -214,18 +221,10 @@ export default function LongTermPage() {
         )}
       </div>
       {hiddenCount > 0 && (
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded border border-gold/40 bg-panel px-4 py-3">
-          <span className="text-sm opacity-80">
-            🔒 {hiddenCount.toLocaleString('en-US')} more screened items — every dip, momentum
-            signal and z-score across the {data.rows.length} most liquid items.
-          </span>
-          <Link
-            to="/premium"
-            className="rounded bg-gold px-3 py-1.5 text-sm font-semibold text-ink hover:brightness-110"
-          >
-            Unlock with Premium
-          </Link>
-        </div>
+        <UnlockStrip>
+          {hiddenCount.toLocaleString('en-US')} more screened items — every dip, momentum
+          signal and z-score across the {data.rows.length} most liquid items.
+        </UnlockStrip>
       )}
     </div>
   );

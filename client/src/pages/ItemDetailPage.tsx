@@ -13,6 +13,7 @@ import { ChartSkeleton, Skeleton } from '../components/Skeleton';
 import { AlertForm } from '../components/AlertForm';
 import { ItemAnalytics } from '../components/ItemAnalytics';
 import { UpsellDialog } from '../components/UpsellDialog';
+import { Icon } from '../components/Icon';
 
 const NATURE_RUNE_ID = 561;
 const TIMESTEPS: Timestep[] = ['5m', '1h', '6h', '24h'];
@@ -30,7 +31,7 @@ function PctText({ value }: { value: number | null }) {
 
 function StatRow({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="flex items-baseline justify-between gap-4 border-b border-panel-border/40 py-1.5 text-sm last:border-b-0">
+    <div className="flex items-baseline justify-between gap-4 border-b border-panel-border/50 py-1.5 text-sm last:border-b-0">
       <span className="opacity-60">{label}</span>
       <span>{children}</span>
     </div>
@@ -146,7 +147,9 @@ export default function ItemDetailPage() {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center gap-3">
-        <Link to="/" className="text-sm text-gold hover:underline">← Flip Finder</Link>
+        <Link to="/" className="text-sm text-gold hover:underline">
+          <Icon name="arrow-left" className="mr-1" /> Flip Finder
+        </Link>
       </div>
 
       <header className="flex flex-wrap items-center gap-3">
@@ -159,16 +162,16 @@ export default function ItemDetailPage() {
             isWatched(item.id) ? 'text-gold' : 'text-parchment/30 hover:text-parchment/70'
           }`}
         >
-          {isWatched(item.id) ? '★' : '☆'}
+          <Icon name={isWatched(item.id) ? 'star-fill' : 'star'} />
         </button>
         {item.members && (
-          <span className="rounded bg-amber-900/50 px-1.5 py-0.5 text-[11px] uppercase tracking-wide text-amber-300" title="Members-only item">
+          <span className="rounded bg-amber-900/50 px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-amber-300" title="Members-only item">
             members
           </span>
         )}
         {item.taxExempt && (
-          <span className="rounded bg-emerald-900/60 px-1.5 py-0.5 text-[11px] uppercase tracking-wide text-emerald-300" title="Exempt from GE tax">
-            tax exempt
+          <span className="rounded bg-emerald-900/60 px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-emerald-300" title="Exempt from the 2% GE tax">
+            tax-free
           </span>
         )}
         <span className="text-xs opacity-40">#{item.id}</span>
@@ -179,7 +182,7 @@ export default function ItemDetailPage() {
           className="text-xs text-gold/70 underline hover:text-gold"
           title="Open this item on the OSRS Wiki"
         >
-          Wiki ↗
+          Wiki <Icon name="external" size={11} />
         </a>
       </header>
 
@@ -215,7 +218,17 @@ export default function ItemDetailPage() {
                             : 'text-parchment/50 hover:text-parchment'
                         }`}
                       >
-                        {r === 'all' ? (locked ? '1y 🔒' : '1y') : r}
+                        {r === 'all' ? (
+                          locked ? (
+                            <>
+                              1y <Icon name="lock" size={10} />
+                            </>
+                          ) : (
+                            '1y'
+                          )
+                        ) : (
+                          r
+                        )}
                       </button>
                     );
                   })}
@@ -280,7 +293,7 @@ export default function ItemDetailPage() {
                 to={`/log?item=${item.id}`}
                 className="block rounded bg-gold px-3 py-1.5 text-center text-sm font-semibold text-ink hover:brightness-110"
               >
-                📒 Log this flip
+                <Icon name="book" className="mr-1" /> Log this flip
               </Link>
             </div>
             <AlertForm item={item} defaultThreshold={flip?.marginPerItem ?? null} />

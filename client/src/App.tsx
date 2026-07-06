@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { NavLink, Route, Routes } from 'react-router-dom';
 import FlipFinderPage from './pages/FlipFinderPage';
 import ItemDetailPage from './pages/ItemDetailPage';
@@ -10,8 +11,9 @@ import PremiumPage from './pages/PremiumPage';
 import ToolsPage from './pages/ToolsPage';
 import DealsPage from './pages/DealsPage';
 import { AlertWatcher } from './components/AlertWatcher';
+import { Icon } from './components/Icon';
 
-function Tab({ to, label }: { to: string; label: string }) {
+function Tab({ to, label, icon }: { to: string; label: string; icon?: ReactNode }) {
   return (
     <NavLink
       to={to}
@@ -22,6 +24,7 @@ function Tab({ to, label }: { to: string; label: string }) {
         }`
       }
     >
+      {icon}
       {label}
     </NavLink>
   );
@@ -33,7 +36,7 @@ export default function App() {
       <AlertWatcher />
       <header className="flex flex-wrap items-center gap-4">
         <span className="text-xl font-bold text-gold">
-          💰 GE Flip Finder
+          <Icon name="coins" className="mr-1.5" /> GE Flip Finder
           <span className="ml-2 hidden text-xs font-normal opacity-50 sm:inline">
             Old School RuneScape
           </span>
@@ -47,7 +50,11 @@ export default function App() {
           <Tab to="/watchlist" label="Watchlist" />
           <Tab to="/log" label="Flip Log" />
           <Tab to="/faq" label="FAQ" />
-          <Tab to="/premium" label="⭐ Premium" />
+          <Tab
+            to="/premium"
+            label="Premium"
+            icon={<Icon name="sparkle" className="mr-1.5" size={13} />}
+          />
         </nav>
       </header>
       <main className="flex-1">

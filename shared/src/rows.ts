@@ -14,6 +14,12 @@ export interface FlipRow extends ItemSnapshot {
   isThin: boolean;
   /** Latest prices disagree sharply with the 1h average. */
   isUnstable: boolean;
+  /** Trading well above its usual hourly pace right now. */
+  isHot: boolean;
+  /** Latest mid price drifting up vs the 1h average (small, directional). */
+  isRising: boolean;
+  /** Latest mid price drifting down vs the 1h average. */
+  isFalling: boolean;
   /** Direction the buy side (insta-sell) moved since the previous refresh. */
   buyMove: -1 | 0 | 1;
   /** Direction the sell side (insta-buy) moved since the previous refresh. */
@@ -33,10 +39,31 @@ const THIN_MIN_ROI = 0.04;
 const THIN_MAX_VOLUME_1H = 30;
 /** "Unstable" = either latest side deviating more than this from its 1h average. */
 const UNSTABLE_DEVIATION = 0.1;
+/** "Hot" = 1h volume above this multiple of the item's usual hourly pace… */
+const HOT_SURGE_FACTOR = 2;
+/** …with at least this many units traded, so dead items can't spike on noise. */
+const HOT_MIN_VOLUME_1H = 50;
+/** "Rising"/"falling" = latest mid drifting at least this far from the 1h-average mid. */
+const DRIFT_THRESHOLD = 0.03;
 
 function deviates(latest: number | null, hourAvg: number | null): boolean {
   if (latest === null || hourAvg === null || hourAvg === 0) return false;
   return Math.abs(latest - hourAvg) / hourAvg > UNSTABLE_DEVIATION;
+}
+
+/** Fractional drift of the latest mid vs the 1h-average mid; null when a side is missing. */
+function midDrift(item: ItemSnapshot): number | null {
+  if (
+    item.high === null ||
+    item.low === null ||
+    item.avgHighPrice1h === null ||
+    item.avgLowPrice1h === null
+  ) {
+    return null;
+  }
+  const avgMid = (item.avgHighPrice1h + item.avgLowPrice1h) / 2;
+  if (avgMid === 0) return null;
+  return ((item.high + item.low) / 2 - avgMid) / avgMid;
 }
 
 /**
@@ -87,6 +114,13 @@ export function buildRows(
         item.volume1h < THIN_MAX_VOLUME_1H,
       isUnstable:
         deviates(item.high, item.avgHighPrice1h) || deviates(item.low, item.avgLowPrice1h),
+      isHot:
+        item.volume1h >= HOT_MIN_VOLUME_1H &&
+        item.dailyVolume !== null &&
+        item.dailyVolume > 0 &&
+        item.volume1h > HOT_SURGE_FACTOR * (item.dailyVolume / 24),
+      isRising: (midDrift(item) ?? 0) >= DRIFT_THRESHOLD,
+      isFalling: (midDrift(item) ?? 0) <= -DRIFT_THRESHOLD,
       buyMove: move(item.low, prevPrices?.low),
       sellMove: move(item.high, prevPrices?.high),
     };

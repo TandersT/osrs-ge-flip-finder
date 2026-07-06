@@ -12,6 +12,7 @@ import {
 import type { AppConfig, ItemSnapshot } from '@osrs-flip/shared';
 import { atLimit, computeFlip, formatGpAxis, formatGpCompact, formatGpFull, geTax } from '@osrs-flip/shared';
 import { useAppConfig, useItems } from '../lib/api';
+import { CHART } from '../lib/chartTheme';
 import { nameMatches } from '../lib/rows';
 import {
   cumulativeProfit,
@@ -25,13 +26,14 @@ import {
 } from '../lib/fliplog';
 import { UnlockStrip } from '../components/UnlockStrip';
 import { GpText } from '../components/GpText';
+import { Icon } from '../components/Icon';
 import { ItemIcon } from '../components/ItemIcon';
 import { UpsellDialog } from '../components/UpsellDialog';
 import { useTier } from '../lib/tier';
 
-const LINE_COLOR = '#c98500'; // CVD-validated on the dark panel surface
-const GRID_COLOR = '#3d362a';
-const AXIS_TEXT = '#a89f8c';
+const LINE_COLOR = CHART.line;
+const GRID_COLOR = CHART.grid;
+const AXIS_TEXT = CHART.axisText;
 
 function StatTile({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -91,7 +93,9 @@ function ItemPicker({
           >
             <ItemIcon icon={selected.icon} name={selected.name} size={20} />
             <span className="truncate">{selected.name}</span>
-            <span className="ml-auto opacity-40">✕</span>
+            <span className="ml-auto opacity-40">
+              <Icon name="close" size={11} />
+            </span>
           </button>
         ) : (
           <input
@@ -237,14 +241,15 @@ function OpenPositionRow({
             className="rounded bg-gold px-2 py-1 text-xs font-semibold text-ink enabled:hover:brightness-110 disabled:opacity-30"
             title="Mark as sold at this price"
           >
-            ✓ Sold
+            <Icon name="check" className="mr-0.5" size={11} /> Sold
           </button>
           <button
             onClick={() => onRemove(entry.id)}
             title="Delete position"
+            aria-label="Delete position"
             className="px-1 text-parchment/30 hover:text-osrs-red"
           >
-            ✕
+            <Icon name="close" size={12} />
           </button>
         </span>
       </td>
@@ -410,7 +415,8 @@ export default function FlipLogPage() {
             <span className="text-sm text-sky-300">open position — complete it when it sells</span>
           ) : (
             <span className="text-sm">
-              tax {formatGpCompact(preview.tax)}/ea → <GpText amount={preview.profit} signed />
+              tax {formatGpCompact(preview.tax)}/ea <Icon name="arrow-right" size={10} />{' '}
+              <GpText amount={preview.profit} signed />
             </span>
           )}
         </div>
@@ -546,7 +552,10 @@ export default function FlipLogPage() {
         (entitlements.logAnalytics ? (
           <section className="rounded border border-gold/40 bg-panel p-4">
             <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-gold">
-              Your numbers <span className="ml-1 font-normal normal-case text-gold/60">⭐ premium</span>
+              Your numbers{' '}
+              <span className="ml-1 font-normal normal-case text-gold/60">
+                <Icon name="sparkle" size={11} /> premium
+              </span>
             </h2>
             <div className="grid gap-4 lg:grid-cols-2">
               <div className="overflow-auto">
@@ -597,7 +606,7 @@ export default function FlipLogPage() {
       {closed.length > 0 && (
         <section className="overflow-auto rounded border border-panel-border bg-panel">
           <div className="flex items-center justify-between px-3 py-2">
-            <span className="text-xs uppercase tracking-wide text-gold">
+            <span className="text-xs font-semibold uppercase tracking-wide text-gold">
               History
               {entitlements.fliplogMax !== null && (
                 <span className={`ml-2 normal-case ${logAtCap ? 'text-osrs-red' : 'opacity-50'}`}>
@@ -612,14 +621,16 @@ export default function FlipLogPage() {
                 title={entitlements.csvImport ? 'Restore a previous Flip Log export' : 'CSV import is a Premium feature'}
                 className="rounded border border-panel-border px-2 py-1 text-xs hover:border-gold hover:text-gold"
               >
-                {entitlements.csvImport ? '⬆' : '🔒'} Import CSV
+                <Icon name={entitlements.csvImport ? 'arrow-up' : 'lock'} className="mr-0.5" size={11} />{' '}
+                Import CSV
               </button>
               <button
                 onClick={exportCsv}
                 title={entitlements.csvExport ? 'Download the full log as CSV' : 'CSV export is a Premium feature'}
                 className="rounded border border-panel-border px-2 py-1 text-xs hover:border-gold hover:text-gold"
               >
-                {entitlements.csvExport ? '⬇' : '🔒'} Export CSV
+                <Icon name={entitlements.csvExport ? 'arrow-down' : 'lock'} className="mr-0.5" size={11} />{' '}
+                Export CSV
               </button>
             </span>
           </div>
@@ -670,9 +681,10 @@ export default function FlipLogPage() {
                     <button
                       onClick={() => remove(e.id)}
                       title="Delete entry"
+                      aria-label="Delete entry"
                       className="px-1 text-parchment/30 hover:text-osrs-red"
                     >
-                      ✕
+                      <Icon name="close" size={12} />
                     </button>
                   </td>
                 </tr>
@@ -684,7 +696,7 @@ export default function FlipLogPage() {
 
       {entries.length === 0 && (
         <div className="flex flex-col items-center gap-3 rounded border border-panel-border bg-panel p-14 text-center">
-          <span className="text-4xl">📒</span>
+          <Icon name="book" size={40} className="text-parchment/40" />
           <p className="opacity-70">No flips logged yet.</p>
           <p className="max-w-md text-sm opacity-50">
             Find a flip in the <Link to="/" className="text-gold underline">finder</Link> or the{' '}
@@ -700,7 +712,8 @@ export default function FlipLogPage() {
             }
             className="rounded border border-panel-border px-3 py-1.5 text-xs hover:border-gold hover:text-gold"
           >
-            {entitlements.csvImport ? '⬆' : '🔒'} Import CSV
+            <Icon name={entitlements.csvImport ? 'arrow-up' : 'lock'} className="mr-0.5" size={11} />{' '}
+            Import CSV
           </button>
           {importNote && <span className="text-xs opacity-60">{importNote}</span>}
         </div>

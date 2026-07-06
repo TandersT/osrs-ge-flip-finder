@@ -34,7 +34,7 @@ test('AFK methods: character import gates requirements', async ({ page }) => {
 
   await page.getByLabel('RuneScape name').fill('Test Alt');
   await page.getByRole('button', { name: 'Import character' }).click();
-  await expect(page.getByText('⚔️')).toBeVisible();
+  await expect(page.getByText('Test Alt', { exact: true })).toBeVisible();
   await expect(page.getByText('Herb 60')).toBeVisible();
 
   // premium: full list, requirement chips now green/red

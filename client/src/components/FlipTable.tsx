@@ -11,8 +11,10 @@ import { useVirtualizer } from '@tanstack/react-virtual';
 import { useNavigate } from 'react-router-dom';
 import { formatAge } from '@osrs-flip/shared';
 import type { FlipRow } from '../lib/rows';
+import { MARKET_FLAG_DEFS } from '../lib/flags';
 import { useMediaQuery } from '../lib/useMediaQuery';
 import { GpText } from './GpText';
+import { Icon } from './Icon';
 import { ItemIcon } from './ItemIcon';
 
 const col = createColumnHelper<FlipRow>();
@@ -92,7 +94,7 @@ function FlipCard({
         <span className="truncate font-medium">{row.name}</span>
         {row.taxExempt && (
           <span className="rounded bg-emerald-900/60 px-1 text-[10px] uppercase text-emerald-300">
-            exempt
+            tax-free
           </span>
         )}
         <span
@@ -102,7 +104,7 @@ function FlipCard({
           }}
           className={`ml-auto px-1 text-lg leading-none ${watched ? 'text-gold' : 'text-parchment/30'}`}
         >
-          {watched ? '★' : '☆'}
+          <Icon name={watched ? 'star-fill' : 'star'} />
         </span>
       </span>
       <span className="flex w-full items-baseline gap-3">
@@ -119,16 +121,19 @@ function FlipCard({
         </span>
       </span>
       <span className="flex w-full items-center gap-2 text-xs opacity-70">
-        <GpText amount={flip?.buyAt ?? null} /> → <GpText amount={flip?.sellAt ?? null} />
+        <GpText amount={flip?.buyAt ?? null} /> <Icon name="arrow-right" size={11} />{' '}
+        <GpText amount={flip?.sellAt ?? null} />
         <span className="ml-auto flex items-center gap-1">
           vol {row.volume1h.toLocaleString('en-US')}/h ·{' '}
           {formatAge(
             row.ageSeconds === null ? null : context.nowSec - row.ageSeconds,
             context.nowSec * 1000,
           )}
-          {row.isStale && <span className="text-osrs-red">stale</span>}
-          {row.isThin && <span className="text-red-300">thin</span>}
-          {row.isUnstable && <span className="text-orange-300">unstable</span>}
+          {MARKET_FLAG_DEFS.filter((d) => d.get(row)).map((d) => (
+            <span key={d.key} className={d.textClass}>
+              {d.label}
+            </span>
+          ))}
         </span>
       </span>
     </button>
@@ -152,7 +157,7 @@ export function buildColumns({ nowSec, isWatched, onToggleWatch, sinceAdded }: T
             title={watched ? 'Remove from watchlist' : 'Add to watchlist'}
             className={`px-1 text-base leading-none ${watched ? 'text-gold' : 'text-parchment/30 hover:text-parchment/70'}`}
           >
-            {watched ? '★' : '☆'}
+            <Icon name={watched ? 'star-fill' : 'star'} />
           </button>
         );
       },
@@ -166,9 +171,9 @@ export function buildColumns({ nowSec, isWatched, onToggleWatch, sinceAdded }: T
           {info.row.original.taxExempt && (
             <span
               className="rounded bg-emerald-900/60 px-1 text-[10px] uppercase tracking-wide text-emerald-300"
-              title="Exempt from GE tax"
+              title="Exempt from the 2% GE tax"
             >
-              exempt
+              tax-free
             </span>
           )}
         </span>
@@ -298,27 +303,9 @@ export function buildColumns({ nowSec, isWatched, onToggleWatch, sinceAdded }: T
         const row = info.row.original;
         return (
           <span className="flex gap-1">
-            {row.isStale && (
-              <FlagBadge
-                label="stale"
-                className="bg-zinc-700/60 text-zinc-300"
-                title="One of the price sides hasn't updated recently"
-              />
-            )}
-            {row.isThin && (
-              <FlagBadge
-                label="thin"
-                className="bg-red-900/60 text-red-300"
-                title="Juicy margin on tiny volume — possible manipulation or unfillable offer"
-              />
-            )}
-            {row.isUnstable && (
-              <FlagBadge
-                label="unstable"
-                className="bg-orange-900/60 text-orange-300"
-                title="Latest price disagrees sharply with the 1h average"
-              />
-            )}
+            {MARKET_FLAG_DEFS.filter((d) => d.get(row)).map((d) => (
+              <FlagBadge key={d.key} label={d.label} className={d.badgeClass} title={d.title} />
+            ))}
           </span>
         );
       },
@@ -420,7 +407,7 @@ export function FlipTable({ rows, context, sorting, onSortingChange }: FlipTable
             title={sort.desc ? 'Highest first' : 'Lowest first'}
             className="rounded border border-panel-border px-2.5 py-1.5 text-sm hover:border-gold hover:text-gold"
           >
-            {sort.desc ? '▼' : '▲'}
+            <Icon name={sort.desc ? 'chevron-down' : 'chevron-up'} />
           </button>
         </div>
         <div
@@ -475,7 +462,13 @@ export function FlipTable({ rows, context, sorting, onSortingChange }: FlipTable
                     style={header.column.id === 'name' ? { width: 280 } : undefined}
                   >
                     {flexRender(header.column.columnDef.header, header.getContext())}
-                    {{ asc: ' ▲', desc: ' ▼' }[sorted as string] ?? ''}
+                    {sorted && (
+                      <Icon
+                        name={sorted === 'asc' ? 'chevron-up' : 'chevron-down'}
+                        size={12}
+                        className="ml-1"
+                      />
+                    )}
                   </th>
                 );
               })}

@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { Icon } from './Icon';
 
 /** Small modal shown when a free-tier limit is hit. Never blocks reading — only adding. */
 export function UpsellDialog({
@@ -35,7 +36,9 @@ export function UpsellDialog({
         className="w-full max-w-sm rounded border border-gold/40 bg-panel p-5 shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="mb-1 text-lg font-bold text-gold">⭐ {title}</div>
+        <div className="mb-1 text-lg font-bold text-gold">
+          <Icon name="sparkle" className="mr-1.5" /> {title}
+        </div>
         <div className="mb-4 text-sm opacity-80">{children}</div>
         <div className="flex gap-2">
           <Link

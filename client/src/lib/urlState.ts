@@ -1,5 +1,12 @@
 import type { SortingState } from '@tanstack/react-table';
-import { EMPTY_FILTERS, type Filters, type Membership } from './rows';
+import {
+  EMPTY_FILTERS,
+  EMPTY_FLAGS,
+  FLAG_KEYS,
+  type FlagFilters,
+  type Filters,
+  type Membership,
+} from './rows';
 
 /** Default sort when the URL has none. */
 export const DEFAULT_SORTING: SortingState = [{ id: 'profitPer4h', desc: true }];
@@ -9,6 +16,23 @@ const num = (v: string | null): number | null => {
   const n = Number(v);
   return Number.isFinite(n) ? n : null;
 };
+
+/** Each flag is its own param (`stale=hide`, `exempt=only`); `any` is omitted. */
+function flagsFromParams(p: URLSearchParams): FlagFilters {
+  const flags = { ...EMPTY_FLAGS };
+  for (const key of FLAG_KEYS) {
+    const v = p.get(key);
+    if (v === 'only' || v === 'hide') flags[key] = v;
+  }
+  // Legacy params from bookmarks / old links (pre tri-state).
+  if (p.get('exempt') === '1') flags.exempt = 'only';
+  if (p.get('nostale') === '1') flags.stale = 'hide';
+  if (p.get('norisk') === '1') {
+    flags.thin = 'hide';
+    flags.unstable = 'hide';
+  }
+  return flags;
+}
 
 /** Filters/sorting live in the URL so any view is shareable. Defaults are omitted. */
 export function filtersFromParams(p: URLSearchParams): Filters {
@@ -21,9 +45,7 @@ export function filtersFromParams(p: URLSearchParams): Filters {
     minBuyPrice: num(p.get('bmin')),
     maxBuyPrice: num(p.get('bmax')),
     membership: world === 'members' || world === 'f2p' ? (world as Membership) : 'all',
-    taxExemptOnly: p.get('exempt') === '1',
-    hideStale: p.get('nostale') === '1',
-    hideRisky: p.get('norisk') === '1',
+    flags: flagsFromParams(p),
   };
 }
 
@@ -44,9 +66,9 @@ export function paramsFromState(f: Filters, sorting: SortingState): URLSearchPar
   if (f.minBuyPrice !== null) p.set('bmin', String(f.minBuyPrice));
   if (f.maxBuyPrice !== null) p.set('bmax', String(f.maxBuyPrice));
   if (f.membership !== 'all') p.set('world', f.membership);
-  if (f.taxExemptOnly) p.set('exempt', '1');
-  if (f.hideStale) p.set('nostale', '1');
-  if (f.hideRisky) p.set('norisk', '1');
+  for (const key of FLAG_KEYS) {
+    if (f.flags[key] !== 'any') p.set(key, f.flags[key]);
+  }
   const sort = sorting[0];
   const def = DEFAULT_SORTING[0]!;
   if (sort && (sort.id !== def.id || sort.desc !== def.desc)) {

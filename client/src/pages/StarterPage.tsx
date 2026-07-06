@@ -8,6 +8,7 @@ import { allocateBank } from '../lib/allocate';
 import { useTier } from '../lib/tier';
 import { UnlockStrip } from '../components/UnlockStrip';
 import { GpText } from '../components/GpText';
+import { Icon, type IconName } from '../components/Icon';
 import { ItemIcon } from '../components/ItemIcon';
 import { SliderInput } from '../components/SliderInput';
 import { TableSkeleton } from '../components/Skeleton';
@@ -28,12 +29,12 @@ function Step({ n, title, children }: { n: number; title: string; children: Reac
 
 function PersonaCard({
   to,
-  emoji,
+  icon,
   title,
   children,
 }: {
   to: string;
-  emoji: string;
+  icon: IconName;
   title: string;
   children: React.ReactNode;
 }) {
@@ -42,7 +43,7 @@ function PersonaCard({
       to={to}
       className="flex flex-col gap-1 rounded border border-panel-border bg-panel p-4 transition-colors hover:border-gold"
     >
-      <span className="text-2xl">{emoji}</span>
+      <Icon name={icon} size={24} className="text-gold" />
       <span className="font-semibold text-gold">{title}</span>
       <span className="text-sm opacity-70">{children}</span>
     </Link>
@@ -240,7 +241,10 @@ export default function StarterPage() {
       ) : (
         <section className="rounded border border-gold/40 bg-panel p-4">
           <h2 className="mb-1 text-xs font-semibold uppercase tracking-wide text-gold">
-            Suggested portfolio <span className="ml-1 font-normal normal-case text-gold/60">⭐ premium</span>
+            Suggested portfolio{' '}
+            <span className="ml-1 font-normal normal-case text-gold/60">
+              <Icon name="sparkle" size={11} /> premium
+            </span>
           </h2>
           <p className="mb-2 text-xs opacity-50">
             Greedy split of your budget across the strongest safe flips — diversified so one
@@ -288,13 +292,13 @@ export default function StarterPage() {
         <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-gold">
           Tips for small banks
         </h2>
-        <ul className="grid gap-1.5 text-sm opacity-80 sm:grid-cols-2">
-          <li>• Spread your budget over 3–5 items — one stuck offer won&apos;t freeze your bank.</li>
-          <li>• High volume beats high margin: fast fills compound faster than big spreads.</li>
-          <li>• Items under 50 gp are effectively tax-free (2% rounds down to 0).</li>
-          <li>• If an offer doesn&apos;t fill in ~10 minutes, cancel and re-price — don&apos;t wait hours.</li>
-          <li>• Check the item&apos;s chart before committing: a falling price eats thin margins.</li>
-          <li>• Buy limits reset 4 hours after your first purchase — set a timer and re-buy.</li>
+        <ul className="grid list-inside list-disc gap-1.5 text-sm opacity-80 sm:grid-cols-2">
+          <li>Spread your budget over 3–5 items — one stuck offer won&apos;t freeze your bank.</li>
+          <li>High volume beats high margin: fast fills compound faster than big spreads.</li>
+          <li>Items under 50 gp are effectively tax-free (2% rounds down to 0).</li>
+          <li>If an offer doesn&apos;t fill in ~10 minutes, cancel and re-price — don&apos;t wait hours.</li>
+          <li>Check the item&apos;s chart before committing: a falling price eats thin margins.</li>
+          <li>Buy limits reset 4 hours after your first purchase — set a timer and re-buy.</li>
         </ul>
       </section>
 
@@ -303,19 +307,23 @@ export default function StarterPage() {
           As your bank grows
         </h2>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-          <PersonaCard to="/?world=f2p&mv=100" emoji="🗡️" title="F2P flipper">
+          <PersonaCard to="/?world=f2p&mv=100" icon="sword" title="F2P flipper">
             No membership needed — runes, arrows and food move constantly on F2P worlds.
           </PersonaCard>
-          <PersonaCard to="/?mv=1000&mm=1&nostale=1&norisk=1" emoji="⚡" title="High-volume grinder">
+          <PersonaCard
+            to="/?mv=1000&mm=1&stale=hide&thin=hide&unstable=hide"
+            icon="bolt"
+            title="High-volume grinder"
+          >
             Thousands of small, safe flips per day. Low margin, high certainty.
           </PersonaCard>
-          <PersonaCard to="/?bmin=1000000&mm=10000" emoji="💎" title="Big-ticket trader">
+          <PersonaCard to="/?bmin=1000000&mm=10000" icon="gem" title="Big-ticket trader">
             Fewer, larger flips on expensive gear — mind the 2% tax (capped at 5m).
           </PersonaCard>
-          <PersonaCard to="/longterm" emoji="📈" title="Passive investor">
+          <PersonaCard to="/longterm" icon="chart" title="Passive investor">
             Buy statistical dips, hold for weeks. Slower, hands-off, needs patience.
           </PersonaCard>
-          <PersonaCard to="/faq#high-alch" emoji="🔮" title="High alchemist">
+          <PersonaCard to="/faq#high-alch" icon="sparkle" title="High alchemist">
             Turn Magic training into profit — every item page shows alch margins live.
           </PersonaCard>
         </div>

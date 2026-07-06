@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { Icon } from './Icon';
 
 const KEY = 'geff:intro-dismissed:v1';
 
@@ -25,7 +26,7 @@ export function NewUserBanner() {
 
   return (
     <div className="flex items-center gap-3 rounded border border-gold/40 bg-panel px-3 py-2 text-sm">
-      <span className="text-lg">👋</span>
+      <Icon name="coins" size={20} className="shrink-0 text-gold" />
       <span className="flex-1">
         New to flipping? The{' '}
         <Link to="/starter" className="font-medium text-gold underline">
@@ -40,9 +41,10 @@ export function NewUserBanner() {
       <button
         onClick={dismiss}
         title="Dismiss"
+        aria-label="Dismiss"
         className="rounded px-2 py-1 text-parchment/50 hover:text-parchment"
       >
-        ✕
+        <Icon name="close" size={12} />
       </button>
     </div>
   );

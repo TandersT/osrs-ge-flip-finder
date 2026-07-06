@@ -9,6 +9,7 @@ import { FlipTable, rowMid, type TableContext } from '../components/FlipTable';
 import { TableSkeleton } from '../components/Skeleton';
 import { UpsellDialog } from '../components/UpsellDialog';
 import { AlertsSection } from '../components/AlertsSection';
+import { Icon } from '../components/Icon';
 
 export default function WatchlistPage() {
   const config = useAppConfig();
@@ -58,7 +59,7 @@ export default function WatchlistPage() {
     return (
       <div className="flex flex-col gap-4">
       <div className="flex flex-col items-center gap-3 p-14 text-center">
-        <span className="text-4xl">☆</span>
+        <Icon name="star" size={40} className="text-parchment/40" />
         <p className="opacity-70">Nothing on your watchlist yet.</p>
         <p className="text-sm opacity-50">
           Star items in the <Link to="/" className="text-gold underline">Flip Finder</Link> to track

@@ -7,6 +7,33 @@ import type { FlipRow } from '@osrs-flip/shared';
 
 export type Membership = 'all' | 'members' | 'f2p';
 
+/** Row flags a user can filter on. Order here is the display order of the chips. */
+export const FLAG_KEYS = ['exempt', 'stale', 'thin', 'unstable', 'hot', 'rising', 'falling'] as const;
+export type FlagKey = (typeof FLAG_KEYS)[number];
+/** Tri-state per flag: ignore it, keep only flagged rows, or hide flagged rows. */
+export type FlagMode = 'any' | 'only' | 'hide';
+export type FlagFilters = Record<FlagKey, FlagMode>;
+
+export const EMPTY_FLAGS: FlagFilters = {
+  exempt: 'any',
+  stale: 'any',
+  thin: 'any',
+  unstable: 'any',
+  hot: 'any',
+  rising: 'any',
+  falling: 'any',
+};
+
+export const FLAG_GETTERS: Record<FlagKey, (row: FlipRow) => boolean> = {
+  exempt: (r) => r.taxExempt,
+  stale: (r) => r.isStale,
+  thin: (r) => r.isThin,
+  unstable: (r) => r.isUnstable,
+  hot: (r) => r.isHot,
+  rising: (r) => r.isRising,
+  falling: (r) => r.isFalling,
+};
+
 export interface Filters {
   search: string;
   minMargin: number | null;
@@ -16,10 +43,7 @@ export interface Filters {
   minBuyPrice: number | null;
   maxBuyPrice: number | null;
   membership: Membership;
-  taxExemptOnly: boolean;
-  hideStale: boolean;
-  /** Hide rows flagged thin or unstable. */
-  hideRisky: boolean;
+  flags: FlagFilters;
 }
 
 export const EMPTY_FILTERS: Filters = {
@@ -30,9 +54,7 @@ export const EMPTY_FILTERS: Filters = {
   minBuyPrice: null,
   maxBuyPrice: null,
   membership: 'all',
-  taxExemptOnly: false,
-  hideStale: false,
-  hideRisky: false,
+  flags: EMPTY_FLAGS,
 };
 
 export interface FilterPreset {
@@ -43,7 +65,12 @@ export interface FilterPreset {
 export const FILTER_PRESETS: FilterPreset[] = [
   {
     name: 'Low risk, high volume',
-    filters: { ...EMPTY_FILTERS, minVolume1h: 1000, minMargin: 1, hideStale: true, hideRisky: true },
+    filters: {
+      ...EMPTY_FILTERS,
+      minVolume1h: 1000,
+      minMargin: 1,
+      flags: { ...EMPTY_FLAGS, stale: 'hide', thin: 'hide', unstable: 'hide' },
+    },
   },
   {
     name: 'Big ticket',
@@ -51,7 +78,7 @@ export const FILTER_PRESETS: FilterPreset[] = [
   },
   {
     name: 'Tax-free only',
-    filters: { ...EMPTY_FILTERS, taxExemptOnly: true },
+    filters: { ...EMPTY_FILTERS, flags: { ...EMPTY_FLAGS, exempt: 'only' } },
   },
   {
     name: 'F2P',
@@ -78,9 +105,13 @@ export function applyFilters(rows: FlipRow[], f: Filters): FlipRow[] {
     if (!nameMatches(row.name, f.search)) return false;
     if (f.membership === 'members' && !row.members) return false;
     if (f.membership === 'f2p' && row.members) return false;
-    if (f.taxExemptOnly && !row.taxExempt) return false;
-    if (f.hideStale && row.isStale) return false;
-    if (f.hideRisky && (row.isThin || row.isUnstable)) return false;
+    for (const key of FLAG_KEYS) {
+      const mode = f.flags[key];
+      if (mode === 'any') continue;
+      const flagged = FLAG_GETTERS[key](row);
+      if (mode === 'only' && !flagged) return false;
+      if (mode === 'hide' && flagged) return false;
+    }
     if (f.minVolume1h !== null && row.volume1h < f.minVolume1h) return false;
     if (f.minMargin !== null || f.minRoi !== null || f.minBuyPrice !== null || f.maxBuyPrice !== null) {
       if (row.flip === null) return false;

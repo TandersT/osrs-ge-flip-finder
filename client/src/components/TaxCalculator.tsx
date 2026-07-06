@@ -11,8 +11,10 @@ export function TaxCalculator() {
   const effective = price > 0 ? (tax / price) * 100 : 0;
 
   return (
-    <div className="rounded border border-gold/30 bg-panel-light/50 p-4">
-      <div className="mb-3 text-sm font-medium text-gold">Try it — what does a sale cost?</div>
+    <div className="rounded border border-gold/40 bg-panel p-4">
+      <div className="mb-3 text-xs font-semibold uppercase tracking-wide text-gold">
+        Try it — what does a sale cost?
+      </div>
       <div className="flex flex-wrap items-end gap-4">
         <label className="flex flex-col gap-1 text-xs">
           <span className="uppercase tracking-wide opacity-60">Sell price (per item)</span>

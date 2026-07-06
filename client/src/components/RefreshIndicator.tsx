@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Icon } from './Icon';
 
 interface RefreshIndicatorProps {
   /** Epoch ms of the last successful fetch (TanStack's dataUpdatedAt). */
@@ -36,12 +37,13 @@ export function RefreshIndicator({
       <button
         onClick={onRefresh}
         title="Refresh now"
+        aria-label="Refresh now"
         disabled={isFetching}
         className={`rounded border border-panel-border px-1.5 py-0.5 hover:border-gold hover:text-gold ${
           isFetching ? 'animate-spin' : ''
         }`}
       >
-        ⟳
+        <Icon name="refresh" size={12} />
       </button>
     </div>
   );

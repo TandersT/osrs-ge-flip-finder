@@ -15,7 +15,7 @@ test('renders chart panels, flip economics and high-alch data', async ({ page })
   await expect(page.getByText('Break-even sell')).toBeVisible();
   await expect(page.getByText('Post-tax margin')).toBeVisible();
   await expect(page.getByText('Nature rune')).toBeVisible();
-  await expect(page.getByRole('link', { name: 'Wiki ↗' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Wiki', exact: true })).toBeVisible();
 });
 
 test('timestep switch and 24h range chips', async ({ page }) => {

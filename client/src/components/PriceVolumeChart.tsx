@@ -13,13 +13,14 @@ import {
 } from 'recharts';
 import type { TimeseriesPoint, Timestep } from '@osrs-flip/shared';
 import { formatGpAxis, formatGpFull } from '@osrs-flip/shared';
+import { CHART } from '../lib/chartTheme';
 
 // Validated for CVD + contrast on the dark panel surface (dataviz six-checks)
-const HIGH_COLOR = '#c98500'; // insta-buy (high)
-const LOW_COLOR = '#3987e5'; // insta-sell (low)
-const VOLUME_COLOR = '#6d675a';
-const GRID_COLOR = '#3d362a';
-const AXIS_TEXT = '#a89f8c';
+const HIGH_COLOR = CHART.line; // insta-buy (high)
+const LOW_COLOR = CHART.lineAlt; // insta-sell (low)
+const VOLUME_COLOR = CHART.volume;
+const GRID_COLOR = CHART.grid;
+const AXIS_TEXT = CHART.axisText;
 
 interface ChartPoint {
   t: number;
@@ -207,7 +208,7 @@ export function PriceVolumeChart({
           />
           <Tooltip
             content={<TooltipContent timestep={timestep} />}
-            cursor={{ fill: '#ffffff10' }}
+            cursor={{ fill: CHART.cursor }}
             isAnimationActive={false}
           />
           <Bar dataKey="volume" fill={VOLUME_COLOR} radius={[2, 2, 0, 0]} isAnimationActive={false} />

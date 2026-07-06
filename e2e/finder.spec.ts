@@ -41,12 +41,12 @@ test('presets apply and tax-exempt filter matches the exemption list size', asyn
   await waitForRows(page);
 
   await page.getByRole('button', { name: 'Tax-free only' }).click();
-  await expect(page).toHaveURL(/exempt=1/);
+  await expect(page).toHaveURL(/exempt=only/);
   const counter = await page.locator('text=/of [\\d,]+ items/').textContent();
   const shown = Number(counter!.match(/^([\d,]+) of/)![1]!.replaceAll(',', ''));
   expect(shown).toBeGreaterThanOrEqual(40);
   expect(shown).toBeLessThanOrEqual(60);
-  await expect(page.locator('tbody span', { hasText: 'exempt' }).first()).toBeVisible();
+  await expect(page.locator('tbody span', { hasText: 'tax-free' }).first()).toBeVisible();
 });
 
 test('keyboard: "/" focuses search, arrows walk rows, Enter opens the item', async ({ page }) => {

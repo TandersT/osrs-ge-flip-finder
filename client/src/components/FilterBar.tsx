@@ -5,30 +5,38 @@ import { useSavedFilters } from '../lib/savedFilters';
 import { useTier } from '../lib/tier';
 import { UpsellDialog } from './UpsellDialog';
 import { formatGpCompact } from '@osrs-flip/shared';
-import { FILTER_PRESETS, EMPTY_FILTERS, type Filters, type Membership } from '../lib/rows';
+import {
+  FILTER_PRESETS,
+  EMPTY_FILTERS,
+  type Filters,
+  type FlagMode,
+  type Membership,
+} from '../lib/rows';
+import { FLAG_DEFS, type FlagDef } from '../lib/flags';
+import { Icon } from './Icon';
 import { SliderInput } from './SliderInput';
 
-function Toggle({
-  label,
-  checked,
-  onChange,
-  title,
-}: {
-  label: string;
-  checked: boolean;
-  onChange: (v: boolean) => void;
-  title?: string;
-}) {
+const NEXT_MODE: Record<FlagMode, FlagMode> = { any: 'only', only: 'hide', hide: 'any' };
+
+/** Tri-state flag filter: click cycles ignore → only flagged rows → hide flagged rows. */
+function FlagChip({ def, mode, onCycle }: { def: FlagDef; mode: FlagMode; onCycle: () => void }) {
+  const cls =
+    mode === 'only'
+      ? 'bg-gold font-medium text-ink'
+      : mode === 'hide'
+        ? 'bg-red-900/50 text-red-300'
+        : 'bg-panel-light text-parchment/50 hover:text-parchment';
   return (
-    <label className="flex cursor-pointer items-center gap-1.5 text-xs" title={title}>
-      <input
-        type="checkbox"
-        checked={checked}
-        onChange={(e) => onChange(e.target.checked)}
-        className="accent-gold"
-      />
-      <span>{label}</span>
-    </label>
+    <button
+      onClick={onCycle}
+      title={`${def.title} — click to cycle: only → hide → any`}
+      aria-label={`${def.label} flag: ${mode}`}
+      className={`rounded px-2 py-1 text-xs ${cls}`}
+    >
+      {mode === 'only' && <Icon name="check" size={10} className="mr-1" />}
+      {mode === 'hide' && <Icon name="close" size={10} className="mr-1" />}
+      {def.label}
+    </button>
   );
 }
 
@@ -115,14 +123,16 @@ export function FilterBar({
               title="Apply this saved view"
               className="px-2.5 py-1 text-xs font-medium text-gold/90 hover:text-gold"
             >
-              ★ {f.name}
+              <Icon name="bookmark-fill" className="mr-1" size={11} />
+              {f.name}
             </button>
             <button
               onClick={() => remove(f.id)}
               title="Delete saved view"
+              aria-label={`Delete saved view ${f.name}`}
               className="pr-1.5 text-xs text-parchment/30 hover:text-osrs-red"
             >
-              ✕
+              <Icon name="close" size={11} />
             </button>
           </span>
         ))}
@@ -154,7 +164,8 @@ export function FilterBar({
             title="Save the current filters and sort as a named view"
             className="rounded px-2.5 py-1 text-xs text-parchment/50 hover:text-gold"
           >
-            ★ Save view
+            <Icon name="bookmark" className="mr-1" size={11} />
+            Save view
           </button>
         )}
       </div>
@@ -176,7 +187,7 @@ export function FilterBar({
           onClick={() => setExpanded((v) => !v)}
           className="rounded border border-panel-border px-2.5 py-1.5 text-xs hover:border-gold hover:text-gold sm:hidden"
         >
-          Filters {expanded ? '▴' : '▾'}
+          Filters <Icon name={expanded ? 'chevron-up' : 'chevron-down'} size={11} />
         </button>
 
         <div
@@ -244,25 +255,28 @@ export function FilterBar({
             </select>
           </label>
 
-          <div className="flex flex-col gap-1.5 pb-0.5">
-            <Toggle
-              label="Tax-exempt only"
-              checked={filters.taxExemptOnly}
-              onChange={(v) => set('taxExemptOnly', v)}
-              title="Only items exempt from the 2% GE tax"
-            />
-            <Toggle
-              label="Hide stale"
-              checked={filters.hideStale}
-              onChange={(v) => set('hideStale', v)}
-              title="Hide items whose prices haven't updated recently"
-            />
-            <Toggle
-              label="Hide risky"
-              checked={filters.hideRisky}
-              onChange={(v) => set('hideRisky', v)}
-              title="Hide thin-volume and unstable-spread items"
-            />
+          <div className="flex max-w-72 flex-col gap-1 text-xs">
+            <span
+              className="uppercase tracking-wide opacity-60"
+              title="Click a flag to cycle: gold = only flagged rows, red = hide flagged rows"
+            >
+              Flags — only / hide
+            </span>
+            <div className="flex flex-wrap gap-1">
+              {FLAG_DEFS.map((def) => (
+                <FlagChip
+                  key={def.key}
+                  def={def}
+                  mode={filters.flags[def.key]}
+                  onCycle={() =>
+                    set('flags', {
+                      ...filters.flags,
+                      [def.key]: NEXT_MODE[filters.flags[def.key]],
+                    })
+                  }
+                />
+              ))}
+            </div>
           </div>
         </div>
       </div>

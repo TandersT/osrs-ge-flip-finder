@@ -5,7 +5,7 @@ import { TaxCalculator } from '../components/TaxCalculator';
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section className="flex flex-col gap-2">
-      <h2 className="text-sm font-semibold uppercase tracking-wide text-gold">{title}</h2>
+      <h2 className="text-xs font-semibold uppercase tracking-wide text-gold">{title}</h2>
       {children}
     </section>
   );
@@ -255,7 +255,8 @@ export default function FaqPage() {
         </Q>
         <Q q="How fresh is what I'm seeing?">
           <p>
-            The table re-polls every 60 seconds (countdown top-right, ⟳ to refresh now). If the
+            The table re-polls every 60 seconds (countdown top-right, refresh button to update
+            now). If the
             wiki API goes down, we keep serving the last good snapshot and show an amber
             warning banner instead of a broken page.
           </p>

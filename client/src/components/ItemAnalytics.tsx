@@ -15,12 +15,14 @@ import {
 import type { AppConfig, ItemSnapshot, TimeseriesPoint, Timestep } from '@osrs-flip/shared';
 import { formatGpAxis, formatGpFull, geTax } from '@osrs-flip/shared';
 import { useTimeseries } from '../lib/api';
+import { CHART } from '../lib/chartTheme';
 import { useTier } from '../lib/tier';
+import { Icon } from './Icon';
 
-const MARGIN_COLOR = '#c98500';
-const VOLUME_COLOR = '#6d675a';
-const GRID_COLOR = '#3d362a';
-const AXIS_TEXT = '#a89f8c';
+const MARGIN_COLOR = CHART.line;
+const VOLUME_COLOR = CHART.volume;
+const GRID_COLOR = CHART.grid;
+const AXIS_TEXT = CHART.axisText;
 
 interface MarginPoint {
   t: number;
@@ -105,8 +107,8 @@ export function ItemAnalytics({
         </h2>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <span className="text-sm opacity-70">
-            🔒 Margin history and hour-by-hour trading activity — see when this item&apos;s
-            spread widens and when it&apos;s most liquid.
+            <Icon name="lock" className="mr-1" /> Margin history and hour-by-hour trading
+            activity — see when this item&apos;s spread widens and when it&apos;s most liquid.
           </span>
           <Link
             to="/premium"
@@ -128,7 +130,10 @@ export function ItemAnalytics({
   return (
     <section className="rounded border border-panel-border bg-panel p-4">
       <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-gold">
-        Flip analytics <span className="ml-1 font-normal normal-case text-gold/60">⭐ premium</span>
+        Flip analytics{' '}
+        <span className="ml-1 font-normal normal-case text-gold/60">
+          <Icon name="sparkle" size={11} /> premium
+        </span>
       </h2>
 
       <PanelTitle>Post-tax margin over time ({timestep} view)</PanelTitle>
@@ -196,7 +201,7 @@ export function ItemAnalytics({
             />
             <Tooltip
               isAnimationActive={false}
-              cursor={{ fill: '#ffffff10' }}
+              cursor={{ fill: CHART.cursor }}
               content={({ active, payload }) => {
                 const p = payload?.[0]?.payload as HourBucket | undefined;
                 return active && p ? (

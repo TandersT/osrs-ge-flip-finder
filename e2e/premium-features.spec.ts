@@ -68,7 +68,7 @@ test('premium: allocator, flip analytics and saved views work', async ({ page })
   await page.getByRole('button', { name: 'Save', exact: true }).click();
   await page.getByRole('button', { name: 'Reset' }).click();
   await expect(page).not.toHaveURL(/mv=1000/);
-  await page.getByRole('button', { name: '★ grinders' }).click();
+  await page.getByRole('button', { name: 'grinders', exact: true }).click();
   await expect(page).toHaveURL(/mv=1000/);
   await expect(page).toHaveURL(/roi=2/);
 });

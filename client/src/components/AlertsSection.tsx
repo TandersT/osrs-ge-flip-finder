@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { describeAlert, useAlerts } from '../lib/alerts';
+import { Icon } from './Icon';
 import { ItemIcon } from './ItemIcon';
 
 /** Active price alerts — shown on the watchlist page; created from item pages. */
@@ -16,7 +17,9 @@ export function AlertsSection() {
 
   return (
     <section className="rounded border border-panel-border bg-panel">
-      <div className="px-3 py-2 text-xs uppercase tracking-wide text-gold">🔔 Price alerts</div>
+      <div className="px-3 py-2 text-xs font-semibold uppercase tracking-wide text-gold">
+        <Icon name="bell" className="mr-1" /> Price alerts
+      </div>
       <ul>
         {alerts.map((a) => (
           <li
@@ -45,9 +48,10 @@ export function AlertsSection() {
             <button
               onClick={() => remove(a.id)}
               title="Delete alert"
+              aria-label="Delete alert"
               className="px-1 text-parchment/30 hover:text-osrs-red"
             >
-              ✕
+              <Icon name="close" size={12} />
             </button>
           </li>
         ))}
