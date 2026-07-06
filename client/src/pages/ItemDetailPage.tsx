@@ -6,6 +6,7 @@ import { useAppConfig, useItems, useTimeseries } from '../lib/api';
 import { computeItemStats, currentMid } from '../lib/itemStats';
 import { useGatedWatchlist } from '../lib/useGatedWatchlist';
 import { useTier } from '../lib/tier';
+import { CopyValue } from '../components/CopyValue';
 import { GpText } from '../components/GpText';
 import { ItemIcon } from '../components/ItemIcon';
 import { PriceVolumeChart } from '../components/PriceVolumeChart';
@@ -258,28 +259,48 @@ export default function ItemDetailPage() {
         <div className="flex flex-col gap-4">
           <Panel title="Flip at current prices">
             <StatRow label="Buy at (insta-sell +1)">
-              {flip ? <span className="tabular-nums">{formatGpFull(flip.buyAt)}</span> : <span className="opacity-40">—</span>}
-            </StatRow>
-            <StatRow label="Sell at (insta-buy −1)">
-              {flip ? <span className="tabular-nums">{formatGpFull(flip.sellAt)}</span> : <span className="opacity-40">—</span>}
-            </StatRow>
-            <StatRow label="Tax per item">
               {flip ? (
-                <span className="tabular-nums opacity-80">{formatGpFull(flip.tax)}</span>
+                <CopyValue value={flip.buyAt}>
+                  <span className="tabular-nums">{formatGpFull(flip.buyAt)}</span>
+                </CopyValue>
               ) : (
                 <span className="opacity-40">—</span>
               )}
             </StatRow>
-            <StatRow label="Post-tax margin"><GpText amount={flip?.marginPerItem ?? null} signed /></StatRow>
+            <StatRow label="Sell at (insta-buy −1)">
+              {flip ? (
+                <CopyValue value={flip.sellAt}>
+                  <span className="tabular-nums">{formatGpFull(flip.sellAt)}</span>
+                </CopyValue>
+              ) : (
+                <span className="opacity-40">—</span>
+              )}
+            </StatRow>
+            <StatRow label="Tax per item">
+              {flip ? (
+                <CopyValue value={flip.tax}>
+                  <span className="tabular-nums opacity-80">{formatGpFull(flip.tax)}</span>
+                </CopyValue>
+              ) : (
+                <span className="opacity-40">—</span>
+              )}
+            </StatRow>
+            <StatRow label="Post-tax margin">
+              <CopyValue value={flip?.marginPerItem ?? null}>
+                <GpText amount={flip?.marginPerItem ?? null} signed />
+              </CopyValue>
+            </StatRow>
             <StatRow label="ROI"><PctText value={flip ? flip.roi : null} /></StatRow>
             <StatRow label="Break-even sell">
               {flip ? (
-                <span
-                  className="tabular-nums opacity-80"
-                  title="Lowest sell price that doesn't lose money after tax, given the buy price above"
-                >
-                  {formatGpFull(breakEvenSell(item.taxExempt, flip.buyAt))}
-                </span>
+                <CopyValue value={breakEvenSell(item.taxExempt, flip.buyAt)}>
+                  <span
+                    className="tabular-nums opacity-80"
+                    title="Lowest sell price that doesn't lose money after tax, given the buy price above"
+                  >
+                    {formatGpFull(breakEvenSell(item.taxExempt, flip.buyAt))}
+                  </span>
+                </CopyValue>
               ) : (
                 <span className="opacity-40">—</span>
               )}
@@ -287,7 +308,11 @@ export default function ItemDetailPage() {
             <StatRow label="Buy limit / 4h">
               {item.limit !== null ? item.limit.toLocaleString('en-US') : '—'}
             </StatRow>
-            <StatRow label="Profit / 4h limit"><GpText amount={flip?.profitPer4h ?? null} signed /></StatRow>
+            <StatRow label="Profit / 4h limit">
+              <CopyValue value={flip?.profitPer4h ?? null}>
+                <GpText amount={flip?.profitPer4h ?? null} signed />
+              </CopyValue>
+            </StatRow>
             <div className="pt-3">
               <Link
                 to={`/log?item=${item.id}`}
@@ -325,10 +350,26 @@ export default function ItemDetailPage() {
               <p className="text-sm opacity-50">This item cannot be alched for profit tracking.</p>
             ) : (
               <>
-                <StatRow label="High alch value"><GpText amount={item.highalch} /></StatRow>
-                <StatRow label="Buy price"><GpText amount={flip?.buyAt ?? null} /></StatRow>
-                <StatRow label="Nature rune"><GpText amount={natCost} /></StatRow>
-                <StatRow label="Profit per cast"><GpText amount={alchProfit} signed /></StatRow>
+                <StatRow label="High alch value">
+                  <CopyValue value={item.highalch}>
+                    <GpText amount={item.highalch} />
+                  </CopyValue>
+                </StatRow>
+                <StatRow label="Buy price">
+                  <CopyValue value={flip?.buyAt ?? null}>
+                    <GpText amount={flip?.buyAt ?? null} />
+                  </CopyValue>
+                </StatRow>
+                <StatRow label="Nature rune">
+                  <CopyValue value={natCost}>
+                    <GpText amount={natCost} />
+                  </CopyValue>
+                </StatRow>
+                <StatRow label="Profit per cast">
+                  <CopyValue value={alchProfit}>
+                    <GpText amount={alchProfit} signed />
+                  </CopyValue>
+                </StatRow>
               </>
             )}
           </Panel>

@@ -13,6 +13,7 @@ import { formatAge } from '@osrs-flip/shared';
 import type { FlipRow } from '../lib/rows';
 import { MARKET_FLAG_DEFS } from '../lib/flags';
 import { useMediaQuery } from '../lib/useMediaQuery';
+import { CopyValue } from './CopyValue';
 import { GpText } from './GpText';
 import { Icon } from './Icon';
 import { ItemIcon } from './ItemIcon';
@@ -85,9 +86,17 @@ function FlipCard({
   const watched = context.isWatched(row.id);
   const flip = row.flip;
   return (
-    <button
+    <div
+      role="button"
+      tabIndex={0}
       onClick={onOpen}
-      className="flex w-full flex-col gap-1 border-t border-panel-border/50 px-3 py-2 text-left text-sm hover:bg-panel-light"
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onOpen();
+        }
+      }}
+      className="flex w-full cursor-pointer flex-col gap-1 border-t border-panel-border/50 px-3 py-2 text-left text-sm hover:bg-panel-light"
     >
       <span className="flex w-full items-center gap-2">
         <ItemIcon icon={row.icon} name={row.name} size={22} />
@@ -121,8 +130,13 @@ function FlipCard({
         </span>
       </span>
       <span className="flex w-full items-center gap-2 text-xs opacity-70">
-        <GpText amount={flip?.buyAt ?? null} /> <Icon name="arrow-right" size={11} />{' '}
-        <GpText amount={flip?.sellAt ?? null} />
+        <CopyValue value={flip?.buyAt ?? null}>
+          <GpText amount={flip?.buyAt ?? null} />
+        </CopyValue>
+        <Icon name="arrow-right" size={11} />
+        <CopyValue value={flip?.sellAt ?? null}>
+          <GpText amount={flip?.sellAt ?? null} />
+        </CopyValue>
         <span className="ml-auto flex items-center gap-1">
           vol {row.volume1h.toLocaleString('en-US')}/h ·{' '}
           {formatAge(
@@ -136,7 +150,7 @@ function FlipCard({
           ))}
         </span>
       </span>
-    </button>
+    </div>
   );
 }
 
@@ -184,18 +198,28 @@ export function buildColumns({ nowSec, isWatched, onToggleWatch, sinceAdded }: T
       id: 'buyAt',
       meta: { align: 'right', title: 'What you pay: latest insta-sell price + 1 gp' },
       header: 'Buy',
-      cell: (info) => (
-        <FlashCell value={info.getValue() ?? null} move={info.row.original.buyMove} />
-      ),
+      cell: (info) => {
+        const v = info.getValue() ?? null;
+        return (
+          <CopyValue value={v}>
+            <FlashCell value={v} move={info.row.original.buyMove} />
+          </CopyValue>
+        );
+      },
       sortUndefined: 'last',
     }),
     col.accessor((r) => r.flip?.sellAt ?? undefined, {
       id: 'sellAt',
       meta: { align: 'right', title: 'What you list at: latest insta-buy price − 1 gp' },
       header: 'Sell',
-      cell: (info) => (
-        <FlashCell value={info.getValue() ?? null} move={info.row.original.sellMove} />
-      ),
+      cell: (info) => {
+        const v = info.getValue() ?? null;
+        return (
+          <CopyValue value={v}>
+            <FlashCell value={v} move={info.row.original.sellMove} />
+          </CopyValue>
+        );
+      },
       sortUndefined: 'last',
     }),
     col.accessor((r) => r.flip?.marginPerItem ?? undefined, {

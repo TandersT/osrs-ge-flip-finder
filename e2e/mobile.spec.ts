@@ -5,8 +5,9 @@ test('finder renders cards instead of a table, with a working sort control', asy
   await expect(page.getByText('Sort by')).toBeVisible({ timeout: 30_000 });
   await expect(page.locator('table')).toHaveCount(0);
 
-  // cards carry the essentials
-  const firstCard = page.locator('div.overflow-auto button').first();
+  // cards carry the essentials (the card is a role=button div; buy/sell inside
+  // are their own copy buttons, so target the card element specifically)
+  const firstCard = page.locator('div.overflow-auto div[role="button"]').first();
   await expect(firstCard).toContainText('ROI');
   await expect(firstCard).toContainText('/ 4h');
 
@@ -31,7 +32,7 @@ test('no horizontal overflow and collapsible filters', async ({ page }) => {
 test('tapping a card opens the item detail', async ({ page }) => {
   await page.goto('/');
   await expect(page.getByText('Sort by')).toBeVisible({ timeout: 30_000 });
-  await page.locator('div.overflow-auto button').first().click();
+  await page.locator('div.overflow-auto div[role="button"]').first().click();
   await expect(page).toHaveURL(/\/item\/\d+/);
   await expect(page.getByText('Flip at current prices')).toBeVisible();
 });

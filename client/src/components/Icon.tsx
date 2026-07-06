@@ -33,6 +33,15 @@ const PATHS = {
   ),
   refresh: <path d="M20 12a8 8 0 1 1-2.3-5.6M20 3.5V8h-4.5" fill="none" />,
   check: <path d="M4.5 12.5l5 5L19.5 7" fill="none" />,
+  copy: (
+    <>
+      <rect x="8.5" y="8.5" width="11" height="11" rx="1.6" fill="none" />
+      <path
+        d="M15.5 8.5V6a1.6 1.6 0 0 0-1.6-1.6H6A1.6 1.6 0 0 0 4.4 6v7.9A1.6 1.6 0 0 0 6 15.5h2.5"
+        fill="none"
+      />
+    </>
+  ),
   warning: <path d="M12 3.5L2.5 20h19zM12 9.5v5m0 2.8v.2" fill="none" />,
   lock: (
     <path d="M7 10.5V7.75A4 4 0 0 1 15 7.75v2.75M5.5 10.5h13v9.5h-13zM12 14v2.5" fill="none" />
