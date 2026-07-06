@@ -4,6 +4,7 @@ import { buildRows, computeMethodRows } from '@osrs-flip/shared';
 import { config } from './config.js';
 import { getItems } from './items.js';
 import { getLongterm } from './longterm.js';
+import { getPatchDetail, getPatches, getUpcoming } from './patches.js';
 import { rankDeals } from './score.js';
 import { getTimeseries, wikiCache } from './wiki.js';
 
@@ -29,6 +30,23 @@ export function registerApiRoutes(app: FastifyInstance): void {
   });
 
   app.get('/api/longterm', async () => getLongterm());
+
+  // Patch Impact (premium page; enforcement is client-side until payments exist)
+  app.get('/api/patches', async () => getPatches());
+
+  app.get('/api/patches/upcoming', async () => getUpcoming());
+
+  app.get<{ Params: { pageid: string } }>('/api/patches/:pageid', async (req, reply) => {
+    const pageid = Number(req.params.pageid);
+    if (!Number.isInteger(pageid) || pageid <= 0) {
+      return reply.code(400).send({ error: 'pageid must be a positive integer' });
+    }
+    const detail = getPatchDetail(pageid);
+    if (detail === null) {
+      return reply.code(404).send({ error: 'Unknown patch (or analysis still building)' });
+    }
+    return detail;
+  });
 
   // The Deal Score is computed HERE and only the result leaves the process —
   // the formula is a trade secret (see server/src/score.ts).
