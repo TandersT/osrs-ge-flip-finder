@@ -459,8 +459,24 @@ multi-year, fully premium, category-analogue evidence). Notable calls:
   update-page files under `server/data/patch-cache/`; a restart from that disk cache (no
   re-backfill) reached ready in ~8.2 seconds. A detail sample on a recent full-data patch
   showed 20 winners / 20 losers, windowDays 7, dataQuality full, universe 396; a bogus
-  pageid correctly 404s. The live upcoming watchlist returned 0 features that day — the
-  wiki's Upcoming updates page links charged/uncharged item-name variants (e.g.
-  "Tumeken's shadow" links, but the tradeable item is "Tumeken's shadow (uncharged)")
-  that don't exact-match tradeable names, so nothing qualified; a spec-compliant
-  omission, not a bug.
+  pageid correctly 404s. The live upcoming watchlist returned 0 features that day — a
+  spec-compliant omission, not a bug, with TWO compounding causes established by probing
+  the live page against `/api/items` (final-review follow-up):
+  1. **Content**: the current Upcoming page is dominated by Sailing (a skill) + QoL, so
+     ~all 80 article links are skills, locations, NPCs and concepts — genuinely almost no
+     tradeable items are mentioned.
+  2. **Liquidity filter**: the one item-like link, "Tumeken's shadow", *does* resolve to a
+     real item (id 27277, "Tumeken's shadow (uncharged)"), but it trades ~278/day against
+     the top-400 universe's floor of ~142k/day — ~500x too illiquid to be screened. Exact
+     vs base-name (charged/uncharged, dosed) matching is a real but SECONDARY factor: even
+     a perfect matcher surfaces only Tumeken's shadow today, which the liquidity filter
+     then excludes anyway.
+  The upcoming pipeline (analogues, evidence, per-item history) is correct and tested; it
+  simply has nothing liquid to show while announced content is skill-focused. Two follow-up
+  levers, deliberately NOT taken now (no live positive case to verify against, and
+  broadening the matcher risks the false positives the "links-only, exact" rule was chosen
+  to avoid): (a) base-name aliasing so `X` links match `X (uncharged)` / dosed variants
+  when unambiguous; (b) a separate, more permissive item universe for the *watchlist*
+  (illiquid-but-notable PvM items like Tumeken's shadow are exactly what a "watch before a
+  patch" list wants, unlike the liquid-flipping screener). See the final-review roll-up in
+  `.superpowers/sdd/progress.md`.
