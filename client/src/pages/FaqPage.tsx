@@ -182,6 +182,36 @@ export default function FaqPage() {
         </Q>
       </Section>
 
+      <Section title="Patch impact">
+        <Q id="patch-impact" q="What does a patch's market impact score mean?">
+          <p>
+            For every game update since 2015 we measure how each of the ~400 most liquid items moved
+            in the week after it, normalised by that item's own volatility — a sleepy item moving 12%
+            counts for more than a jittery one moving 15%. The impact score is simply the share of
+            screened items whose move was unusual for them (at least 2 standard deviations). Routine
+            weekly patches score near zero; expansion-sized updates light the bar up.
+          </p>
+          <p>
+            Winners and losers are always computed from the price archive — nothing on that page is a
+            hand-picked opinion. "Mentioned" badges mean the item is linked in the update's own patch
+            notes on the OSRS wiki.
+          </p>
+        </Q>
+        <Q id="patch-watchlist" q="How are the upcoming 'items to watch' picked?">
+          <p>
+            They're the tradeable items linked in announced future content on the OSRS wiki's
+            Upcoming updates page. For each one we show its own track record — how it moved after past
+            updates that mentioned it — plus how items moved in the most similar past updates
+            (matched by content tags like slayer, boss, or reward).
+          </p>
+          <p>
+            That's evidence, not a prediction: we deliberately never guess direction from an
+            announcement's wording. If the history says "items like this usually dip 4% in week one",
+            that's all we'll claim — and past patches don't bind future ones.
+          </p>
+        </Q>
+      </Section>
+
       <Section title="Risk flags">
         <Q q='What does "stale" mean?'>
           <p>

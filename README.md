@@ -67,9 +67,10 @@ See `DECISIONS.md` ("Repo conventions") for the history of how it got there.
 
 Free covers the whole flipping loop (finder, filters, risk flags, charts, starter guide).
 Premium removes scale limits (watchlist, flip log + CSV) and unlocks the full long-term
-screener and full-year history. Entitlements live in `shared/src/tiers.ts` as data;
-payments are not integrated yet — see [docs/payments-plan.md](docs/payments-plan.md) for
-the Stripe follow-up plan. Until then `/premium` accepts the dev unlock code.
+screener, full-year history and the Patch Impact page. Entitlements live in
+`shared/src/tiers.ts` as data; payments are not integrated yet — see
+[docs/payments-plan.md](docs/payments-plan.md) for the Stripe follow-up plan. Until then
+`/premium` accepts the dev unlock code.
 
 ## Architecture notes
 
@@ -86,3 +87,10 @@ the Stripe follow-up plan. Until then `/premium` accepts the dev unlock code.
   from the wiki (`scripts/generate-item-sets.mjs`), methods are curated data.
 - The long-term screener fetches 24h timeseries for the ~250 most liquid items with a
   throttled worker pool and caches the screen for 12h (see `DECISIONS.md`).
+- **Patch Impact (`/patches`, premium)** adds two more server-side upstreams, same rule as
+  the prices API (browser never calls them): the weirdgloop exchange archive (multi-year
+  daily prices, volumes from Sept 2018) and the wiki's MediaWiki API (update posts + the
+  Upcoming updates page). The first build backfills a few minutes into a disk cache at
+  `server/data/patch-cache/` (gitignored); restarts serve from disk. Winners/losers are
+  event-study computations (see `server/src/patchStats.ts`), never hand-curated; the
+  optional overlay in `server/src/data/patchOverrides.ts` ships empty.

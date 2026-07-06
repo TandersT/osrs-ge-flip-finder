@@ -428,3 +428,39 @@ plus ✕/× and ⭐/★/☆ and ▲▼/▴▾ variants for the same purposes) an
   three places).
 - Verified: new shared tests for the flag thresholds, urlState round-trip + legacy-param
   tests, full e2e 35/35 green against the production build.
+
+## Patch Impact — winners/losers of updates + upcoming watchlist (2026-07-06)
+
+Spec: docs/superpowers/specs/2026-07-06-patch-impact-design.md (Stefan: zero-maintenance,
+multi-year, fully premium, category-analogue evidence). Notable calls:
+
+- **Two new upstreams, both server-side only**: weirdgloop `/exchange/history/osrs/all`
+  (ONE id per request — verified the multi-id form 400s) and the wiki MediaWiki API.
+  `allpages` (ns 112) lists ~1,100 update posts in 3 calls; bulk `prop=revisions` fetches
+  wikitext 50 pages per call, so the whole update backfill is ~30 requests, not 1,100.
+- **categorymembers timestamps are categorization dates, not publish dates** ("RS2
+  Launched!" showed 2026) — the real date comes from each page's `{{Update|date=…}}`
+  template, which also carries `category=game` to drop website/support posts mechanically.
+- **First disk cache in the app** (`server/data/patch-cache/`, gitignored): history is
+  immutable and update posts never change, so restarts must not re-hammer either API.
+  Corrupt/missing files just refetch.
+- **Event study**: baseline = last close strictly before the patch date; +1/+7/+30d and
+  −7d run-up windows; z = change / (own 90d daily σ · √days), σ falling back to the
+  universe median for thin histories. Impact = share of screened items with |z| ≥ 2 —
+  that's the zero-maintenance notability signal ("Known Issues" posts sink on their own).
+  Patches under a week old rank on the 1d window (windowDays on the detail payload).
+- **Predictions never parse sentiment**: tags are lexical (skills + content keywords),
+  analogues = tag-set Jaccard ≥ 0.25 (top 5), and the direction shown is the measured
+  distribution of mentioned-item 7d moves in those analogues (median/IQR/% positive,
+  refused under 5 samples). Same-item track records cap at 6 past mentions.
+- e2e mocks all three /api/patches* endpoints (cold live build takes minutes); the live
+  pipeline was verified by hand in task 7 step 8: the cold backfill analysed 570 game
+  patches with 0 warnings in ~72 seconds, caching 400 price-history files plus 2,817
+  update-page files under `server/data/patch-cache/`; a restart from that disk cache (no
+  re-backfill) reached ready in ~8.2 seconds. A detail sample on a recent full-data patch
+  showed 20 winners / 20 losers, windowDays 7, dataQuality full, universe 396; a bogus
+  pageid correctly 404s. The live upcoming watchlist returned 0 features that day — the
+  wiki's Upcoming updates page links charged/uncharged item-name variants (e.g.
+  "Tumeken's shadow" links, but the tradeable item is "Tumeken's shadow (uncharged)")
+  that don't exact-match tradeable names, so nothing qualified; a spec-compliant
+  omission, not a bug.
