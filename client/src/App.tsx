@@ -10,6 +10,7 @@ import FlipLogPage from './pages/FlipLogPage';
 import PremiumPage from './pages/PremiumPage';
 import ToolsPage from './pages/ToolsPage';
 import DealsPage from './pages/DealsPage';
+import PatchesPage from './pages/PatchesPage';
 import { AlertWatcher } from './components/AlertWatcher';
 import { Icon } from './components/Icon';
 
@@ -46,6 +47,7 @@ export default function App() {
           <Tab to="/deals" label="Best Deals" />
           <Tab to="/starter" label="Get Started" />
           <Tab to="/longterm" label="Long-term" />
+          <Tab to="/patches" label="Patches" />
           <Tab to="/tools" label="Tools" />
           <Tab to="/watchlist" label="Watchlist" />
           <Tab to="/log" label="Flip Log" />
@@ -64,6 +66,7 @@ export default function App() {
           <Route path="/starter" element={<StarterPage />} />
           <Route path="/item/:id" element={<ItemDetailPage />} />
           <Route path="/longterm" element={<LongTermPage />} />
+          <Route path="/patches" element={<PatchesPage />} />
           <Route path="/tools" element={<ToolsPage />} />
           <Route path="/watchlist" element={<WatchlistPage />} />
           <Route path="/log" element={<FlipLogPage />} />
