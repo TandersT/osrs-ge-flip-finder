@@ -138,6 +138,57 @@
                 ],
                 "problemMatcher": [],
                 "detail": "Ensure shared/dist exists before launching server or client"
+            },
+            {
+                "label": "server: restart",
+                "type": "shell",
+                "command": "bash scripts/server.sh restart",
+                "options": {
+                    "cwd": "${workspaceFolder:Shared}/.."
+                },
+                "problemMatcher": [],
+                "detail": "Rebuild, then bounce the persistent production server (:3000). A failed build leaves the running server up."
+            },
+            {
+                "label": "server: start",
+                "type": "shell",
+                "command": "bash scripts/server.sh start",
+                "options": {
+                    "cwd": "${workspaceFolder:Shared}/.."
+                },
+                "problemMatcher": [],
+                "detail": "Build then launch the persistent server if it isn't already running (survives SSH/VS Code disconnect)"
+            },
+            {
+                "label": "server: stop",
+                "type": "shell",
+                "command": "bash scripts/server.sh stop",
+                "options": {
+                    "cwd": "${workspaceFolder:Shared}/.."
+                },
+                "problemMatcher": [],
+                "detail": "Terminate the persistent production server"
+            },
+            {
+                "label": "server: status",
+                "type": "shell",
+                "command": "bash scripts/server.sh status",
+                "options": {
+                    "cwd": "${workspaceFolder:Shared}/.."
+                },
+                "problemMatcher": [],
+                "detail": "Is the server up? Shows PID, port and an /api/health probe"
+            },
+            {
+                "label": "server: logs",
+                "type": "shell",
+                "command": "bash scripts/server.sh logs -f",
+                "options": {
+                    "cwd": "${workspaceFolder:Shared}/.."
+                },
+                "problemMatcher": [],
+                "isBackground": true,
+                "detail": "Follow the persistent server's log output"
             }
         ]
     },
