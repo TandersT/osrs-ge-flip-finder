@@ -80,12 +80,19 @@ function FeatureCard({ feature }: { feature: UpcomingFeature }) {
 
 /** "Items to watch": announced future content + measured historical evidence. */
 export function UpcomingFeatures() {
-  const { data } = useQuery({
+  const { data, isError } = useQuery({
     queryKey: ['patches-upcoming'],
     queryFn: fetchUpcoming,
     refetchInterval: (query) => (query.state.data?.status === 'building' ? 5_000 : 30 * 60_000),
   });
 
+  if (isError) {
+    return (
+      <p className="text-sm text-osrs-red">
+        Failed to load the upcoming watchlist — it will retry automatically.
+      </p>
+    );
+  }
   if (!data || data.status === 'building') return null; // page-level progress bar covers this
   if (data.features.length === 0) {
     return (
