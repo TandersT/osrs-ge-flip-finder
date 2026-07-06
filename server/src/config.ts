@@ -23,4 +23,7 @@ export const config = {
   staleAfterSeconds: num('STALE_AFTER_SECONDS', 1800),
   longtermMinDailyVolume: num('LONGTERM_MIN_DAILY_VOLUME', 5000),
   longtermMaxItems: num('LONGTERM_MAX_ITEMS', 400),
+  gloopApiBase: process.env.GLOOP_API_BASE ?? 'https://api.weirdgloop.org/exchange/history/osrs',
+  mediawikiApiBase: process.env.MEDIAWIKI_API_BASE ?? 'https://oldschool.runescape.wiki/api.php',
+  patchesMaxItems: num('PATCHES_MAX_ITEMS', 400),
 };
