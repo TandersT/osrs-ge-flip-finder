@@ -129,8 +129,9 @@ Rebuilt every 12 h (longterm pattern). Overlay merged at serve time.
 - **Past patches:** table (date, title, impact bar, top winner/loser chips) with
   build-progress bar; selecting a row expands winners + losers tables (%, z, run-up,
   volume delta, "mentioned" badge, `priceOnly` notice pre-2018), item names link to item
-  detail. Mobile card layout per existing convention; visuals follow `docs/design.md`
-  recipes.
+  detail. On mobile the tables scroll horizontally inside their container — the long-term
+  screener/tools convention (cards are a Flip-Finder-only pattern); visuals follow
+  `docs/design.md` recipes.
 
 ## Error handling
 
