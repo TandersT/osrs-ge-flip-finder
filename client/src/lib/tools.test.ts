@@ -2,7 +2,16 @@ import { describe, expect, it } from 'vitest';
 import type { ItemSnapshot } from '@osrs-flip/shared';
 import type { ItemSetDef } from '../data/itemSets';
 import type { MethodDef } from '@osrs-flip/shared';
-import { computeAlchRows, computeDecantRows, computeMethodRows, computeSetRows, NATURE_RUNE_ID } from './tools';
+import {
+  computeAlchRows,
+  computeDecantRows,
+  computeMethodRows,
+  computeSetRow,
+  computeSetRows,
+  resolveSetDefs,
+  setDefsById,
+  NATURE_RUNE_ID,
+} from './tools';
 
 const cfg = { captureRate: 0.1, offerOffset: 1, clientRefreshSeconds: 60, staleAfterSeconds: 1800 };
 
@@ -83,6 +92,11 @@ describe('computeSetRows', () => {
     expect(r.best).toBe('combine');
     expect(r.via).toBe('GE clerk');
     expect(r.volume1h).toBe(50); // least liquid leg is the set itself
+    // raw GE offer prices surfaced for the buy/sell columns (tax lives in the margins)
+    expect(r.setBuy).toBe(10_001);
+    expect(r.setSell).toBe(11_999);
+    expect(r.piecesBuyTotal).toBe(4_001 + 5_001);
+    expect(r.piecesSellTotal).toBe(4_499 + 5_499);
   });
 
   it('resolves inventory combinables by name and tags them', () => {
@@ -182,5 +196,49 @@ describe('computeDecantRows', () => {
     const solo = item({ id: 10, name: 'Prayer potion(3)', low: 9_000, high: 9_100 });
     const whip = item({ id: 4151, name: 'Abyssal whip', low: 1, high: 2 });
     expect(computeDecantRows([solo, whip], cfg)).toHaveLength(0);
+  });
+});
+
+describe('resolveSetDefs / computeSetRow / setDefsById', () => {
+  const setDef: ItemSetDef = {
+    setId: 100,
+    setName: 'Test armour set',
+    pieces: [
+      { id: 101, name: 'Test helm' },
+      { id: 102, name: 'Test body' },
+    ],
+  };
+  const items = [
+    item({ id: 100, name: 'Test armour set', low: 10_000, high: 12_000, volume1h: 50 }),
+    item({ id: 101, name: 'Test helm', low: 4_000, high: 4_500, volume1h: 200 }),
+    item({ id: 102, name: 'Test body', low: 5_000, high: 5_500, volume1h: 300 }),
+    item({ id: 200, name: 'Test godsword', low: 20_000, high: 25_000, volume1h: 40 }),
+    item({ id: 201, name: 'Test blade', low: 8_000, high: 9_000, volume1h: 90 }),
+    item({ id: 202, name: 'Test hilt', low: 10_000, high: 11_000, volume1h: 60 }),
+  ];
+  const combos = [{ result: 'Test godsword', pieces: ['Test blade', 'Test hilt'] }];
+
+  it('resolves GE sets by id and combos by name', () => {
+    const resolved = resolveSetDefs(items, [setDef], combos);
+    expect(resolved).toHaveLength(2);
+    expect(resolved[0]!.via).toBe('GE clerk');
+    expect(resolved[1]!.via).toBe('inventory');
+    expect(resolved[1]!.def.setId).toBe(200);
+    expect(resolved[1]!.def.pieces.map((p) => p.id)).toEqual([201, 202]);
+  });
+
+  it('computeSetRow matches the corresponding computeSetRows entry', () => {
+    const byId = new Map(items.map((i) => [i.id, i]));
+    const resolved = resolveSetDefs(items, [setDef], combos);
+    const single = computeSetRow(byId, cfg, resolved[0]!);
+    const fromAll = computeSetRows(items, cfg, [setDef], combos).find((r) => r.def.setId === 100);
+    expect(single).toEqual(fromAll);
+  });
+
+  it('setDefsById maps set ids but not piece ids', () => {
+    const map = setDefsById(items, [setDef], combos);
+    expect(map.get(100)?.via).toBe('GE clerk');
+    expect(map.get(200)?.via).toBe('inventory');
+    expect(map.has(101)).toBe(false);
   });
 });

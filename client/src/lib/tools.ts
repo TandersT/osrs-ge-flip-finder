@@ -65,24 +65,33 @@ export interface SetRow {
   bestMargin: number;
   /** Hourly volume of the least liquid leg — the realistic constraint. */
   volume1h: number;
+  /** Raw GE offer price for the set: low + offerOffset. */
+  setBuy: number;
+  /** Raw GE offer price for the set: high − offerOffset (min 1). */
+  setSell: number;
+  /** Sum of each piece's buy offer (low + offerOffset). */
+  piecesBuyTotal: number;
+  /** Sum of each piece's sell offer (high − offerOffset, min 1). */
+  piecesSellTotal: number;
+}
+
+export interface ResolvedSet {
+  def: ItemSetDef;
+  via: SetRow['via'];
 }
 
 /**
- * GE clerks exchange sets <-> pieces for free, so any price gap between a set
- * and the sum of its pieces is arbitrage. Both directions computed per set.
+ * Resolve every set/combo definition to concrete piece ids against the live
+ * item list. GE-clerk sets carry ids already; inventory combos resolve by name
+ * and are skipped when a part is missing.
  */
-export function computeSetRows(
+export function resolveSetDefs(
   items: ItemSnapshot[],
-  cfg: AppConfig,
   sets: ItemSetDef[] = ITEM_SETS,
   combos: CombineDef[] = COMBINES,
-): SetRow[] {
-  const byId = new Map(items.map((i) => [i.id, i]));
+): ResolvedSet[] {
   const byName = new Map(items.map((i) => [i.name, i]));
-  const rows: SetRow[] = [];
-
-  // inventory combinables resolve by name; unresolvable ones are skipped
-  const comboDefs: { def: ItemSetDef; via: SetRow['via'] }[] = [];
+  const comboDefs: ResolvedSet[] = [];
   for (const c of combos) {
     const result = byName.get(c.result);
     const pieces = c.pieces.map((n) => byName.get(n));
@@ -96,48 +105,85 @@ export function computeSetRows(
       via: 'inventory',
     });
   }
+  return [...sets.map((def) => ({ def, via: 'GE clerk' as const })), ...comboDefs];
+}
 
-  const all: { def: ItemSetDef; via: SetRow['via'] }[] = [
-    ...sets.map((def) => ({ def, via: 'GE clerk' as const })),
-    ...comboDefs,
-  ];
+/**
+ * Economics for a single resolved set, or null when the set or any piece is
+ * missing or unpriced. Combine = buy pieces, exchange, sell set; split = the
+ * reverse. Both post-tax; the raw offer prices are surfaced for display.
+ */
+export function computeSetRow(
+  byId: Map<number, ItemSnapshot>,
+  cfg: AppConfig,
+  { def, via }: ResolvedSet,
+): SetRow | null {
+  const set = byId.get(def.setId);
+  const pieces = def.pieces.map((p) => byId.get(p.id));
+  if (!set || pieces.some((p) => p === undefined)) return null;
+  if (set.low === null || set.high === null) return null;
+  if (pieces.some((p) => p!.low === null || p!.high === null)) return null;
 
-  for (const { def, via } of all) {
-    const set = byId.get(def.setId);
-    const pieces = def.pieces.map((p) => byId.get(p.id));
-    if (!set || pieces.some((p) => p === undefined)) continue;
-    if (set.low === null || set.high === null) continue;
-    if (pieces.some((p) => p!.low === null || p!.high === null)) continue;
+  const setBuy = set.low + cfg.offerOffset;
+  const setSell = Math.max(1, set.high - cfg.offerOffset);
+  let piecesBuyTotal = 0;
+  let piecesSellTotal = 0;
+  let piecesSellNet = 0;
+  let minVolume = set.volume1h;
+  for (const p of pieces as ItemSnapshot[]) {
+    const pieceSell = Math.max(1, p.high! - cfg.offerOffset);
+    piecesBuyTotal += p.low! + cfg.offerOffset;
+    piecesSellTotal += pieceSell;
+    piecesSellNet += pieceSell - geTax(p.taxExempt, pieceSell);
+    minVolume = Math.min(minVolume, p.volume1h);
+  }
 
-    const setBuy = set.low + cfg.offerOffset;
-    const setSell = Math.max(1, set.high - cfg.offerOffset);
-    let piecesBuy = 0;
-    let piecesSellNet = 0;
-    let minVolume = set.volume1h;
-    for (const p of pieces as ItemSnapshot[]) {
-      // non-null: the some() guard above already rejected null-priced pieces
-      const pieceSell = Math.max(1, p.high! - cfg.offerOffset);
-      piecesBuy += p.low! + cfg.offerOffset;
-      piecesSellNet += pieceSell - geTax(p.taxExempt, pieceSell);
-      minVolume = Math.min(minVolume, p.volume1h);
-    }
+  const combineMargin = setSell - geTax(set.taxExempt, setSell) - piecesBuyTotal;
+  const splitMargin = piecesSellNet - setBuy;
+  const best = combineMargin >= splitMargin ? 'combine' : 'split';
+  return {
+    def,
+    via,
+    set,
+    combineMargin,
+    splitMargin,
+    best,
+    bestMargin: Math.max(combineMargin, splitMargin),
+    volume1h: minVolume,
+    setBuy,
+    setSell,
+    piecesBuyTotal,
+    piecesSellTotal,
+  };
+}
 
-    const combineMargin = setSell - geTax(set.taxExempt, setSell) - piecesBuy;
-    const splitMargin = piecesSellNet - setBuy;
-    const best = combineMargin >= splitMargin ? 'combine' : 'split';
-    rows.push({
-      def,
-      via,
-      set,
-      combineMargin,
-      splitMargin,
-      best,
-      bestMargin: Math.max(combineMargin, splitMargin),
-      volume1h: minVolume,
-    });
+/**
+ * GE clerks exchange sets <-> pieces for free, so any price gap between a set
+ * and the sum of its pieces is arbitrage. Both directions computed per set.
+ */
+export function computeSetRows(
+  items: ItemSnapshot[],
+  cfg: AppConfig,
+  sets: ItemSetDef[] = ITEM_SETS,
+  combos: CombineDef[] = COMBINES,
+): SetRow[] {
+  const byId = new Map(items.map((i) => [i.id, i]));
+  const rows: SetRow[] = [];
+  for (const resolved of resolveSetDefs(items, sets, combos)) {
+    const row = computeSetRow(byId, cfg, resolved);
+    if (row) rows.push(row);
   }
   rows.sort((a, b) => b.bestMargin - a.bestMargin);
   return rows;
+}
+
+/** Sets/combos keyed by their set-item id, for O(1) "is this a set?" checks. */
+export function setDefsById(
+  items: ItemSnapshot[],
+  sets: ItemSetDef[] = ITEM_SETS,
+  combos: CombineDef[] = COMBINES,
+): Map<number, ResolvedSet> {
+  return new Map(resolveSetDefs(items, sets, combos).map((r) => [r.def.setId, r]));
 }
 
 const DOSE_RE = /^(.+)\((\d)\)$/;
