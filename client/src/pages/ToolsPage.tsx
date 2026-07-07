@@ -322,7 +322,7 @@ export default function ToolsPage() {
                   <th className={th(true)}>Pieces (buy → sell)</th>
                   <th className={th(true)}>Combine margin</th>
                   <th className={th(true)}>Split margin</th>
-                  <th className={th(true)}>Pieces</th>
+                  <th className={th(true)}># Pieces</th>
                   <th className={th(true)}>Vol/1h (min leg)</th>
                 </tr>
               </thead>
