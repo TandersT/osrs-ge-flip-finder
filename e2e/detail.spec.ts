@@ -43,3 +43,14 @@ test('unknown item shows a friendly not-found state', async ({ page }) => {
   await page.goto('/item/99999999');
   await expect(page.getByText(/not found/i)).toBeVisible();
 });
+
+test('set detail page opens the pieces breakdown modal', async ({ page }) => {
+  await page.goto('/item/13012');
+  await page.getByRole('button', { name: 'View set pieces' }).click();
+
+  const dialog = page.getByRole('dialog');
+  await expect(dialog).toBeVisible();
+  expect(await dialog.locator('tbody tr').count()).toBeGreaterThanOrEqual(2);
+  await page.keyboard.press('Escape');
+  await expect(dialog).toBeHidden();
+});

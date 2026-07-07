@@ -14,7 +14,9 @@ import { ChartSkeleton, Skeleton } from '../components/Skeleton';
 import { AlertForm } from '../components/AlertForm';
 import { ItemAnalytics } from '../components/ItemAnalytics';
 import { UpsellDialog } from '../components/UpsellDialog';
+import { SetBreakdownDialog } from '../components/SetBreakdownDialog';
 import { Icon } from '../components/Icon';
+import { setDefsById, type ResolvedSet } from '../lib/tools';
 
 const NATURE_RUNE_ID = 561;
 const TIMESTEPS: Timestep[] = ['5m', '1h', '6h', '24h'];
@@ -57,6 +59,7 @@ export default function ItemDetailPage() {
   const { isWatched, toggle, upsellOpen, closeUpsell, watchlistMax } = useGatedWatchlist();
   const { entitlements } = useTier();
   const [historyUpsell, setHistoryUpsell] = useState(false);
+  const [piecesOpen, setPiecesOpen] = useState(false);
 
   const items = useItems(config.clientRefreshSeconds);
   const chart = useTimeseries(id, timestep);
@@ -73,6 +76,10 @@ export default function ItemDetailPage() {
   const stats = useMemo(
     () => (item && daily.data ? computeItemStats(daily.data.data, item) : null),
     [daily.data, item],
+  );
+  const setDef = useMemo<ResolvedSet | null>(
+    () => (items.data ? setDefsById(items.data.items).get(id) ?? null : null),
+    [items.data, id],
   );
 
   // The 24h series is ~a year; the range chips window it client-side.
@@ -185,6 +192,15 @@ export default function ItemDetailPage() {
         >
           Wiki <Icon name="external" size={11} />
         </a>
+        {setDef && (
+          <button
+            onClick={() => setPiecesOpen(true)}
+            title="Break this set down into its pieces"
+            className="rounded border border-panel-border px-2 py-1 text-xs text-gold hover:border-gold"
+          >
+            <Icon name="shield" size={12} className="mr-1" /> View set pieces
+          </button>
+        )}
       </header>
 
       <div className="grid gap-4 lg:grid-cols-3">
@@ -375,6 +391,12 @@ export default function ItemDetailPage() {
           </Panel>
         </div>
       </div>
+      <SetBreakdownDialog
+        set={piecesOpen ? setDef : null}
+        items={items.data?.items ?? []}
+        config={config}
+        onClose={() => setPiecesOpen(false)}
+      />
       <UpsellDialog open={upsellOpen} onClose={closeUpsell} title="Watchlist full">
         The free tier tracks up to {watchlistMax} items. Premium removes the cap.
       </UpsellDialog>
