@@ -84,3 +84,18 @@ test('watchlist: starring an item persists and shows since-added', async ({ page
   await waitForRows(page);
   await expect(page.locator('tbody tr')).toHaveCount(1);
 });
+
+test('set breakdown modal opens from a finder row', async ({ page }) => {
+  await page.goto('/');
+  await page.waitForSelector('tbody tr', { timeout: 30_000 });
+  // the finder search input is an implicitly-labelled text input ("Search")
+  await page.getByLabel('Search').fill('Adamant set (lg)');
+  const row = page.locator('tbody tr').first();
+  await row.getByRole('button', { name: 'View set pieces' }).click();
+
+  const dialog = page.getByRole('dialog');
+  await expect(dialog).toBeVisible();
+  expect(await dialog.locator('tbody tr').count()).toBeGreaterThanOrEqual(2);
+  await page.keyboard.press('Escape');
+  await expect(dialog).toBeHidden();
+});

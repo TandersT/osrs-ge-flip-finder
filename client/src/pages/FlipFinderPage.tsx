@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import type { SortingState } from '@tanstack/react-table';
 import { useAppConfig, useItems } from '../lib/api';
 import { applyFilters, buildRows, type Filters, type PrevPrices } from '../lib/rows';
+import { setDefsById, type ResolvedSet } from '../lib/tools';
 import { filtersFromParams, paramsFromState, sortingFromParams } from '../lib/urlState';
 import { useGatedWatchlist } from '../lib/useGatedWatchlist';
 import { FilterBar } from '../components/FilterBar';
@@ -10,6 +11,7 @@ import { Icon } from '../components/Icon';
 import { FlipTable, rowMid, type TableContext } from '../components/FlipTable';
 import { NewUserBanner } from '../components/NewUserBanner';
 import { RefreshIndicator } from '../components/RefreshIndicator';
+import { SetBreakdownDialog } from '../components/SetBreakdownDialog';
 import { TableSkeleton } from '../components/Skeleton';
 import { UpsellDialog } from '../components/UpsellDialog';
 
@@ -51,9 +53,20 @@ export default function FlipFinderPage() {
     );
   }, [data]);
   const filtered = useMemo(() => applyFilters(rows, filters), [rows, filters]);
+  const setById = useMemo(
+    () => (data ? setDefsById(data.items) : new Map<number, ResolvedSet>()),
+    [data],
+  );
+  const [openSet, setOpenSet] = useState<ResolvedSet | null>(null);
   const tableContext: TableContext = useMemo(
-    () => ({ nowSec, isWatched, onToggleWatch: (row) => toggle(row.id, rowMid(row)) }),
-    [nowSec, isWatched, toggle],
+    () => ({
+      nowSec,
+      isWatched,
+      onToggleWatch: (row) => toggle(row.id, rowMid(row)),
+      setIds: new Set(setById.keys()),
+      onOpenPieces: (row) => setOpenSet(setById.get(row.id) ?? null),
+    }),
+    [nowSec, isWatched, toggle, setById],
   );
 
   if (isPending) {
@@ -103,6 +116,12 @@ export default function FlipFinderPage() {
         />
       </div>
       <FlipTable rows={filtered} context={tableContext} sorting={sorting} onSortingChange={setSorting} />
+      <SetBreakdownDialog
+        set={openSet}
+        items={data.items}
+        config={config}
+        onClose={() => setOpenSet(null)}
+      />
       <UpsellDialog open={upsellOpen} onClose={closeUpsell} title="Watchlist full">
         The free tier tracks up to {watchlistMax} items. Premium removes the cap — star as
         many as you like.

@@ -59,6 +59,10 @@ export interface TableContext {
   onToggleWatch: (row: FlipRow) => void;
   /** When set (watchlist view), adds a "Since added" column: id -> fractional change. */
   sinceAdded?: Map<number, number | null>;
+  /** Set-item ids that should show a "view pieces" trigger. */
+  setIds?: Set<number>;
+  /** Open the set-breakdown modal for a set/combo row. */
+  onOpenPieces?: (row: FlipRow) => void;
 }
 
 /** Sort choices exposed on the phone layout (cards have no clickable headers). */
@@ -105,6 +109,18 @@ function FlipCard({
           <span className="rounded bg-emerald-900/60 px-1 text-[10px] uppercase text-emerald-300">
             tax-free
           </span>
+        )}
+        {context.setIds?.has(row.id) && context.onOpenPieces && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              context.onOpenPieces!(row);
+            }}
+            title="View set pieces"
+            className="text-parchment/40 hover:text-gold"
+          >
+            <Icon name="shield" size={13} />
+          </button>
         )}
         <span
           onClick={(e) => {
@@ -154,7 +170,7 @@ function FlipCard({
   );
 }
 
-export function buildColumns({ nowSec, isWatched, onToggleWatch, sinceAdded }: TableContext) {
+export function buildColumns({ nowSec, isWatched, onToggleWatch, sinceAdded, setIds, onOpenPieces }: TableContext) {
   return [
     col.display({
       id: 'watch',
@@ -189,6 +205,18 @@ export function buildColumns({ nowSec, isWatched, onToggleWatch, sinceAdded }: T
             >
               tax-free
             </span>
+          )}
+          {setIds?.has(info.row.original.id) && onOpenPieces && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onOpenPieces(info.row.original);
+              }}
+              title="View set pieces"
+              className="text-parchment/40 hover:text-gold"
+            >
+              <Icon name="shield" size={12} />
+            </button>
           )}
         </span>
       ),
