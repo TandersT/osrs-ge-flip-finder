@@ -62,3 +62,22 @@ test('hiscores errors surface cleanly', async ({ page }) => {
   await page.getByRole('button', { name: 'Import character' }).click();
   await expect(page.getByText('Player not found on the hiscores')).toBeVisible();
 });
+
+test('set breakdown modal opens from the combining tab', async ({ page }) => {
+  await page.goto('/premium');
+  await page.getByLabel('Unlock code').fill('GEFF-DEV-2026');
+  await page.getByRole('button', { name: 'Redeem' }).click();
+
+  await page.goto('/tools?tool=sets');
+  await page.waitForSelector('tbody tr', { timeout: 30_000 });
+  await page.locator('tbody tr').first().getByRole('button', { name: 'View set pieces' }).click();
+
+  const dialog = page.getByRole('dialog');
+  await expect(dialog).toBeVisible();
+  // set row + at least one piece row
+  expect(await dialog.locator('tbody tr').count()).toBeGreaterThanOrEqual(2);
+  await expect(dialog.getByText('set', { exact: true })).toBeVisible();
+
+  await page.keyboard.press('Escape');
+  await expect(dialog).toBeHidden();
+});

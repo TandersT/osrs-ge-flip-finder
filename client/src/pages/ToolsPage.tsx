@@ -8,6 +8,7 @@ import {
   computeMethodRows,
   computeSetRows,
   ALCH_CASTS_PER_HOUR,
+  type ResolvedSet,
 } from '../lib/tools';
 import { useCharacter } from '../lib/character';
 import { useTier } from '../lib/tier';
@@ -15,6 +16,7 @@ import { CopyValue } from '../components/CopyValue';
 import { GpText } from '../components/GpText';
 import { Icon, type IconName } from '../components/Icon';
 import { ItemIcon } from '../components/ItemIcon';
+import { SetBreakdownDialog } from '../components/SetBreakdownDialog';
 import { TableSkeleton } from '../components/Skeleton';
 import { UnlockStrip } from '../components/UnlockStrip';
 
@@ -116,6 +118,7 @@ export default function ToolsPage() {
   const [f2pOnly, setF2pOnly] = useState(false);
   const [category, setCategory] = useState('all');
   const [viaFilter, setViaFilter] = useState('all');
+  const [openSet, setOpenSet] = useState<ResolvedSet | null>(null);
 
   const alchRows = useMemo(
     () => (data && tool === 'alch' ? computeAlchRows(data.items, config).filter((r) => r.item.volume1h >= minVolume) : []),
@@ -334,6 +337,16 @@ export default function ToolsPage() {
                       <span className="flex items-center gap-2">
                         <ItemIcon icon={r.set.icon} name={r.set.name} />
                         {r.set.name}
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setOpenSet({ def: r.def, via: r.via });
+                          }}
+                          title="View set pieces"
+                          className="text-parchment/40 hover:text-gold"
+                        >
+                          <Icon name="shield" size={13} />
+                        </button>
                       </span>
                     </td>
                     <td className={td}>
@@ -524,6 +537,12 @@ export default function ToolsPage() {
           <TeaserStrip hidden={methodRows.length - visibleMethods.length} what="methods, ranked by gp/hour" />
         </>
       )}
+      <SetBreakdownDialog
+        set={openSet}
+        items={data?.items ?? []}
+        config={config}
+        onClose={() => setOpenSet(null)}
+      />
     </div>
   );
 }
