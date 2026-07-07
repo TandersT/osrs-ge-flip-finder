@@ -11,6 +11,7 @@ import {
 } from '../lib/tools';
 import { useCharacter } from '../lib/character';
 import { useTier } from '../lib/tier';
+import { CopyValue } from '../components/CopyValue';
 import { GpText } from '../components/GpText';
 import { Icon, type IconName } from '../components/Icon';
 import { ItemIcon } from '../components/ItemIcon';
@@ -308,12 +309,14 @@ export default function ToolsPage() {
             margins shown after tax · throughput bound by the least liquid leg
           </p>
           <section className="overflow-auto rounded border border-panel-border bg-panel">
-            <table className="w-full min-w-[860px] border-collapse text-sm">
+            <table className="w-full min-w-[1040px] border-collapse text-sm">
               <thead className="bg-panel-light">
                 <tr>
                   <th className={th(false)}>Set / combo</th>
                   <th className={th(false)}>Via</th>
                   <th className={th(false)}>Best move</th>
+                  <th className={th(true)}>Set (buy → sell)</th>
+                  <th className={th(true)}>Pieces (buy → sell)</th>
                   <th className={th(true)}>Combine margin</th>
                   <th className={th(true)}>Split margin</th>
                   <th className={th(true)}>Pieces</th>
@@ -352,6 +355,20 @@ export default function ToolsPage() {
                         }
                       >
                         {r.best}
+                      </span>
+                    </td>
+                    <td className={`${td} text-right`}>
+                      <span className="inline-flex items-center gap-1 tabular-nums">
+                        <CopyValue value={r.setBuy}><GpText amount={r.setBuy} /></CopyValue>
+                        <Icon name="arrow-right" size={11} className="opacity-40" />
+                        <CopyValue value={r.setSell}><GpText amount={r.setSell} /></CopyValue>
+                      </span>
+                    </td>
+                    <td className={`${td} text-right`}>
+                      <span className="inline-flex items-center gap-1 tabular-nums">
+                        <CopyValue value={r.piecesBuyTotal}><GpText amount={r.piecesBuyTotal} /></CopyValue>
+                        <Icon name="arrow-right" size={11} className="opacity-40" />
+                        <CopyValue value={r.piecesSellTotal}><GpText amount={r.piecesSellTotal} /></CopyValue>
                       </span>
                     </td>
                     <td className={`${td} text-right`}><GpText amount={r.combineMargin} signed /></td>
