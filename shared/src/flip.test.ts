@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { computeFlip } from './flip.js';
+import { computeFlip, computeFlipFromPrices } from './flip.js';
 
 const cfg = { captureRate: 0.1, offerOffset: 1 };
 
@@ -89,5 +89,70 @@ describe('computeFlip', () => {
     );
     expect(flip!.marginPerItem).toBe(1019 - 1001 - 20);
     expect(flip!.marginPerItem).toBeLessThan(0);
+  });
+});
+
+describe('computeFlipFromPrices', () => {
+  it('computes tax, margin, roi and throughput from explicit prices', () => {
+    // sell 1099 tax = 21; buy 981
+    const flip = computeFlipFromPrices(
+      { buy: 981, sell: 1099, isExempt: false, buyLimit: 100, volumePer4h: 5000 },
+      0.1,
+    );
+    expect(flip).not.toBeNull();
+    expect(flip!.buyAt).toBe(981);
+    expect(flip!.sellAt).toBe(1099);
+    expect(flip!.tax).toBe(21);
+    expect(flip!.marginPerItem).toBe(1099 - 981 - 21);
+    expect(flip!.roi).toBeCloseTo(97 / 981);
+    expect(flip!.feasibleQtyPer4h).toBe(100);
+    expect(flip!.profitPer4h).toBe(97 * 100);
+  });
+
+  it('agrees with computeFlip when fed that flip’s own buy/sell', () => {
+    const live = computeFlip(
+      { low: 980, high: 1100, isExempt: false, buyLimit: 100, volumePer4h: 5000 },
+      cfg,
+    )!;
+    const whatIf = computeFlipFromPrices(
+      {
+        buy: live.buyAt,
+        sell: live.sellAt,
+        isExempt: false,
+        buyLimit: 100,
+        volumePer4h: 5000,
+      },
+      cfg.captureRate,
+    )!;
+    expect(whatIf).toEqual(live);
+  });
+
+  it('floors fractional prices and rejects sub-1 gp offers', () => {
+    const flip = computeFlipFromPrices(
+      { buy: 100.9, sell: 200.9, isExempt: true, buyLimit: null, volumePer4h: null },
+      0.1,
+    );
+    expect(flip!.buyAt).toBe(100);
+    expect(flip!.sellAt).toBe(200);
+    expect(flip!.tax).toBe(0); // exempt
+    expect(flip!.marginPerItem).toBe(100);
+    expect(
+      computeFlipFromPrices(
+        { buy: 0, sell: 200, isExempt: false, buyLimit: null, volumePer4h: null },
+        0.1,
+      ),
+    ).toBeNull();
+  });
+
+  it('reflects a hypothetical: a higher sell price lifts ROI', () => {
+    const base = computeFlipFromPrices(
+      { buy: 1000, sell: 1100, isExempt: false, buyLimit: 10, volumePer4h: null },
+      0.1,
+    )!;
+    const higher = computeFlipFromPrices(
+      { buy: 1000, sell: 1200, isExempt: false, buyLimit: 10, volumePer4h: null },
+      0.1,
+    )!;
+    expect(higher.roi).toBeGreaterThan(base.roi);
   });
 });

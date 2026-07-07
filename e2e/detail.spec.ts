@@ -12,8 +12,10 @@ test('renders chart panels, flip economics and high-alch data', async ({ page })
   expect(await page.locator('.recharts-bar-rectangle').count()).toBeGreaterThan(0);
   expect(await page.locator('.recharts-reference-line').count()).toBeGreaterThan(0);
 
-  await expect(page.getByText('Break-even sell')).toBeVisible();
-  await expect(page.getByText('Post-tax margin')).toBeVisible();
+  // scope to the live flip panel — the What-if calculator mirrors some of these labels
+  const flipPanel = page.locator('section', { hasText: 'Flip at current prices' });
+  await expect(flipPanel.getByText('Break-even sell')).toBeVisible();
+  await expect(flipPanel.getByText('Post-tax margin')).toBeVisible();
   await expect(page.getByText('Nature rune')).toBeVisible();
   await expect(page.getByRole('link', { name: 'Wiki', exact: true })).toBeVisible();
 });

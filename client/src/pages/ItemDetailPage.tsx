@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import type { Timestep } from '@osrs-flip/shared';
-import { breakEvenSell, computeFlip, formatGpFull } from '@osrs-flip/shared';
+import type { AppConfig, FlipResult, ItemSnapshot, Timestep } from '@osrs-flip/shared';
+import { breakEvenSell, computeFlip, computeFlipFromPrices, formatGpFull } from '@osrs-flip/shared';
 import { useAppConfig, useItems, useTimeseries } from '../lib/api';
 import { computeItemStats, currentMid } from '../lib/itemStats';
 import { useGatedWatchlist } from '../lib/useGatedWatchlist';
@@ -47,6 +47,111 @@ function Panel({ title, children }: { title: string; children: React.ReactNode }
       <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-gold">{title}</h2>
       {children}
     </section>
+  );
+}
+
+/**
+ * "What-if" calculator: type hypothetical buy/sell prices and see the margin,
+ * ROI and 4h profit they'd produce. Seeded from the live flip; mounted with a
+ * `key` of the item id so switching items re-seeds. Compares back to live ROI
+ * so you can see how your prices change it.
+ */
+function WhatIfCalculator({
+  item,
+  config,
+  live,
+}: {
+  item: ItemSnapshot;
+  config: AppConfig;
+  live: FlipResult | null;
+}) {
+  const seedBuy = live ? String(live.buyAt) : '';
+  const seedSell = live ? String(live.sellAt) : '';
+  const [buy, setBuy] = useState(seedBuy);
+  const [sell, setSell] = useState(seedSell);
+
+  const wBuy = Math.max(0, Math.floor(Number(buy) || 0));
+  const wSell = Math.max(0, Math.floor(Number(sell) || 0));
+  const flip = computeFlipFromPrices(
+    {
+      buy: wBuy,
+      sell: wSell,
+      isExempt: item.taxExempt,
+      buyLimit: item.limit,
+      volumePer4h: item.volume1h > 0 ? item.volume1h * 4 : null,
+    },
+    config.captureRate,
+  );
+  const diverged = live !== null && (wBuy !== live.buyAt || wSell !== live.sellAt);
+
+  const inputCls =
+    'w-full rounded border border-panel-border bg-ink px-2 py-1.5 text-sm tabular-nums text-parchment outline-none focus:border-gold';
+
+  return (
+    <Panel title="What-if calculator">
+      <p className="mb-3 text-xs opacity-60">
+        Type hypothetical buy/sell prices to see the margin and ROI they&apos;d produce. Seeded
+        from the live prices above.
+      </p>
+      <div className="grid grid-cols-2 gap-3">
+        <label className="flex flex-col gap-1 text-xs">
+          <span className="uppercase tracking-wide opacity-60">Buy price</span>
+          <input
+            type="number"
+            min={1}
+            inputMode="numeric"
+            value={buy}
+            onChange={(e) => setBuy(e.target.value)}
+            className={inputCls}
+          />
+        </label>
+        <label className="flex flex-col gap-1 text-xs">
+          <span className="uppercase tracking-wide opacity-60">Sell price</span>
+          <input
+            type="number"
+            min={1}
+            inputMode="numeric"
+            value={sell}
+            onChange={(e) => setSell(e.target.value)}
+            className={inputCls}
+          />
+        </label>
+      </div>
+      <div className="mt-3">
+        <StatRow label="Tax per item">
+          {flip ? (
+            <span className="tabular-nums opacity-80">{formatGpFull(flip.tax)}</span>
+          ) : (
+            <span className="opacity-40">—</span>
+          )}
+        </StatRow>
+        <StatRow label="Post-tax margin">
+          <GpText amount={flip?.marginPerItem ?? null} signed />
+        </StatRow>
+        <StatRow label="ROI">
+          <span className="flex items-baseline gap-2">
+            <PctText value={flip ? flip.roi : null} />
+            {diverged && live && (
+              <span className="text-xs opacity-50">live {(live.roi * 100).toFixed(1)}%</span>
+            )}
+          </span>
+        </StatRow>
+        <StatRow label="Profit / 4h limit">
+          <GpText amount={flip?.profitPer4h ?? null} signed />
+        </StatRow>
+      </div>
+      {diverged && (
+        <button
+          onClick={() => {
+            setBuy(seedBuy);
+            setSell(seedSell);
+          }}
+          className="mt-3 text-xs text-gold hover:underline"
+        >
+          <Icon name="refresh" size={11} className="mr-1" /> Reset to live prices
+        </button>
+      )}
+    </Panel>
   );
 }
 
@@ -339,6 +444,8 @@ export default function ItemDetailPage() {
             </div>
             <AlertForm item={item} defaultThreshold={flip?.marginPerItem ?? null} />
           </Panel>
+
+          <WhatIfCalculator key={item.id} item={item} config={config} live={flip} />
 
           <Panel title="Statistics">
             <StatRow label="Today's move"><PctText value={stats?.todayMove ?? null} /></StatRow>
