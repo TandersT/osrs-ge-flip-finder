@@ -3,9 +3,10 @@ import { Link } from 'react-router-dom';
 import type { SortingState } from '@tanstack/react-table';
 import { pctChange } from '@osrs-flip/shared';
 import { useAppConfig, useItems } from '../lib/api';
-import { buildRows } from '../lib/rows';
+import { buildRows, EMPTY_FLAGS, matchesFlagFilters, type FlagFilters } from '../lib/rows';
 import { useGatedWatchlist } from '../lib/useGatedWatchlist';
 import { FlipTable, rowMid, type TableContext } from '../components/FlipTable';
+import { FlagSelector } from '../components/FlagSelector';
 import { TableSkeleton } from '../components/Skeleton';
 import { UpsellDialog } from '../components/UpsellDialog';
 import { AlertsSection } from '../components/AlertsSection';
@@ -16,6 +17,7 @@ export default function WatchlistPage() {
   const { data, isPending, isError, error } = useItems(config.clientRefreshSeconds);
   const { entries, isWatched, toggle, upsellOpen, closeUpsell, watchlistMax } = useGatedWatchlist();
   const [sorting, setSorting] = useState<SortingState>([{ id: 'profitPer4h', desc: true }]);
+  const [flags, setFlags] = useState<FlagFilters>(EMPTY_FLAGS);
 
   const nowSec = useMemo(() => Math.floor(Date.now() / 1000), [data]);
   const rows = useMemo(() => {
@@ -27,6 +29,8 @@ export default function WatchlistPage() {
       nowSec,
     );
   }, [data, entries, config, nowSec]);
+
+  const shown = useMemo(() => rows.filter((r) => matchesFlagFilters(r, flags)), [rows, flags]);
 
   const sinceAdded = useMemo(() => {
     const map = new Map<number, number | null>();
@@ -77,7 +81,8 @@ export default function WatchlistPage() {
         {entries.length.toLocaleString('en-US')} watched item{entries.length === 1 ? '' : 's'} —
         stored in this browser
       </div>
-      <FlipTable rows={rows} context={tableContext} sorting={sorting} onSortingChange={setSorting} />
+      <FlagSelector flags={flags} onChange={setFlags} />
+      <FlipTable rows={shown} context={tableContext} sorting={sorting} onSortingChange={setSorting} />
       <AlertsSection />
       <UpsellDialog open={upsellOpen} onClose={closeUpsell} title="Watchlist full">
         The free tier tracks up to {watchlistMax} items. Premium removes the cap.

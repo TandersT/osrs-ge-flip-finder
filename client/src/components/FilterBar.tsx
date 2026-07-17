@@ -9,36 +9,11 @@ import {
   FILTER_PRESETS,
   EMPTY_FILTERS,
   type Filters,
-  type FlagMode,
   type Membership,
 } from '../lib/rows';
-import { FLAG_DEFS, type FlagDef } from '../lib/flags';
 import { Icon } from './Icon';
 import { SliderInput } from './SliderInput';
-
-const NEXT_MODE: Record<FlagMode, FlagMode> = { any: 'only', only: 'hide', hide: 'any' };
-
-/** Tri-state flag filter: click cycles ignore → only flagged rows → hide flagged rows. */
-function FlagChip({ def, mode, onCycle }: { def: FlagDef; mode: FlagMode; onCycle: () => void }) {
-  const cls =
-    mode === 'only'
-      ? 'bg-gold font-medium text-ink'
-      : mode === 'hide'
-        ? 'bg-red-900/50 text-red-300'
-        : 'bg-panel-light text-parchment/50 hover:text-parchment';
-  return (
-    <button
-      onClick={onCycle}
-      title={`${def.title} — click to cycle: only → hide → any`}
-      aria-label={`${def.label} flag: ${mode}`}
-      className={`rounded px-2 py-1 text-xs ${cls}`}
-    >
-      {mode === 'only' && <Icon name="check" size={10} className="mr-1" />}
-      {mode === 'hide' && <Icon name="close" size={10} className="mr-1" />}
-      {def.label}
-    </button>
-  );
-}
+import { FlagSelector } from './FlagSelector';
 
 const gp = (v: number) => formatGpCompact(v);
 
@@ -170,6 +145,8 @@ export function FilterBar({
         )}
       </div>
 
+      <FlagSelector flags={filters.flags} onChange={(next) => set('flags', next)} />
+
       <div className="flex flex-wrap items-end gap-x-6 gap-y-4">
         <label className="flex flex-col gap-1 text-xs">
           <span className="uppercase tracking-wide opacity-60">Search</span>
@@ -255,29 +232,6 @@ export function FilterBar({
             </select>
           </label>
 
-          <div className="flex max-w-72 flex-col gap-1 text-xs">
-            <span
-              className="uppercase tracking-wide opacity-60"
-              title="Click a flag to cycle: gold = only flagged rows, red = hide flagged rows"
-            >
-              Flags — only / hide
-            </span>
-            <div className="flex flex-wrap gap-1">
-              {FLAG_DEFS.map((def) => (
-                <FlagChip
-                  key={def.key}
-                  def={def}
-                  mode={filters.flags[def.key]}
-                  onCycle={() =>
-                    set('flags', {
-                      ...filters.flags,
-                      [def.key]: NEXT_MODE[filters.flags[def.key]],
-                    })
-                  }
-                />
-              ))}
-            </div>
-          </div>
         </div>
       </div>
       <UpsellDialog open={savedUpsell} onClose={() => setSavedUpsell(false)} title="Saved views">

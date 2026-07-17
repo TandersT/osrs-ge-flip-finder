@@ -4,12 +4,23 @@ import { useQuery } from '@tanstack/react-query';
 import type { Deal, DealsResponse } from '@osrs-flip/shared';
 import { formatGpCompact } from '@osrs-flip/shared';
 import { useCharacter } from '../lib/character';
+import { EMPTY_FLAGS, matchesFlagFilters, type FlagFilters, type FlipRow } from '../lib/rows';
+import { useFlipRowsById } from '../lib/useItemFlags';
 import { useTier } from '../lib/tier';
+import { FlagBadges } from '../components/FlagBadges';
+import { FlagSelector } from '../components/FlagSelector';
 import { GpText } from '../components/GpText';
 import { ItemIcon } from '../components/ItemIcon';
 import { SliderInput } from '../components/SliderInput';
 import { TableSkeleton } from '../components/Skeleton';
 import { UnlockStrip } from '../components/UnlockStrip';
+
+/** Flip deals encode their item id as `flip-<id>`; methods have no item. */
+function dealItemId(deal: Deal): number | null {
+  if (deal.kind !== 'flip') return null;
+  const id = Number(deal.id.slice('flip-'.length));
+  return Number.isFinite(id) ? id : null;
+}
 
 async function fetchDeals(): Promise<DealsResponse> {
   const res = await fetch('/api/deals');
@@ -38,8 +49,15 @@ export default function DealsPage() {
   const { character } = useCharacter();
   const { entitlements } = useTier();
   const navigate = useNavigate();
+  const flipRowsById = useFlipRowsById();
   const [maxCapital, setMaxCapital] = useState<number | null>(null);
   const [geOnly, setGeOnly] = useState(true);
+  const [flags, setFlags] = useState<FlagFilters>(EMPTY_FLAGS);
+
+  const flagsFor = (deal: Deal): FlipRow | undefined => {
+    const id = dealItemId(deal);
+    return id === null ? undefined : flipRowsById.get(id);
+  };
 
   const deals = useMemo(() => {
     if (!data) return [];
@@ -47,9 +65,11 @@ export default function DealsPage() {
       if (maxCapital !== null && d.capital > maxCapital) return false;
       if (geOnly && d.kind === 'method' && d.atGE === false) return false;
       if (!meetsRequirements(d, character?.levels)) return false;
+      const id = dealItemId(d);
+      if (!matchesFlagFilters(id === null ? undefined : flipRowsById.get(id), flags)) return false;
       return true;
     });
-  }, [data, maxCapital, geOnly, character]);
+  }, [data, maxCapital, geOnly, character, flags, flipRowsById]);
 
   const visible = entitlements.dealRows === null ? deals.slice(0, 100) : deals.slice(0, entitlements.dealRows);
 
@@ -96,6 +116,7 @@ export default function DealsPage() {
             methods filtered to {character.name}&apos;s levels
           </span>
         )}
+        <FlagSelector flags={flags} onChange={setFlags} className="w-full sm:w-auto" />
       </div>
 
       {isPending ? (
@@ -151,6 +172,7 @@ export default function DealsPage() {
                           >
                             {deal.kind}
                           </span>
+                          <FlagBadges row={flagsFor(deal)} className="ml-2" />
                           <span className="block text-xs opacity-50">
                             {deal.detail}
                             {deal.hints.length > 0 && (

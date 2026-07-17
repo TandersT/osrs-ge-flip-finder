@@ -12,6 +12,12 @@ export interface FlipRow extends ItemSnapshot {
   isStale: boolean;
   /** Juicy margin on tiny volume — likely manipulation or an unfillable offer. */
   isThin: boolean;
+  /** Large margin: ROI (post-tax margin as a share of the buy price) is high. */
+  isFat: boolean;
+  /** Exceptional margin: ROI well above "fat" — a lot of money per gp risked. */
+  isWhale: boolean;
+  /** A fat margin you can actually fill — high ROI with real hourly volume. */
+  isPrime: boolean;
   /** Latest prices disagree sharply with the 1h average. */
   isUnstable: boolean;
   /** Trading well above its usual hourly pace right now. */
@@ -37,6 +43,12 @@ function move(current: number | null, previous: number | null | undefined): -1 |
 const THIN_MIN_ROI = 0.04;
 /** …on fewer than this many units traded per hour. */
 const THIN_MAX_VOLUME_1H = 30;
+/** "Fat" = post-tax margin worth at least this share of the buy price (ROI). */
+const FAT_MIN_ROI = 0.1;
+/** "Whale" = an exceptional ROI — a lot of money relative to the price paid. */
+const WHALE_MIN_ROI = 0.25;
+/** "Prime" = a fat margin (FAT_MIN_ROI) backed by at least this hourly volume. */
+const PRIME_MIN_VOLUME_1H = 50;
 /** "Unstable" = either latest side deviating more than this from its 1h average. */
 const UNSTABLE_DEVIATION = 0.1;
 /** "Hot" = 1h volume above this multiple of the item's usual hourly pace… */
@@ -112,6 +124,11 @@ export function buildRows(
         flip.marginPerItem > 0 &&
         flip.roi >= THIN_MIN_ROI &&
         item.volume1h < THIN_MAX_VOLUME_1H,
+      // "Large margin" flags key off ROI so they scale with the item's price:
+      // a fixed gp margin is huge on a 100k item and trivial on a 100m one.
+      isFat: flip !== null && flip.roi >= FAT_MIN_ROI,
+      isWhale: flip !== null && flip.roi >= WHALE_MIN_ROI,
+      isPrime: flip !== null && flip.roi >= FAT_MIN_ROI && item.volume1h >= PRIME_MIN_VOLUME_1H,
       isUnstable:
         deviates(item.high, item.avgHighPrice1h) || deviates(item.low, item.avgLowPrice1h),
       isHot:

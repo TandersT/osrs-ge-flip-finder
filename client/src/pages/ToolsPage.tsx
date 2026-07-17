@@ -11,8 +11,12 @@ import {
   type ResolvedSet,
 } from '../lib/tools';
 import { useCharacter } from '../lib/character';
+import { EMPTY_FLAGS, matchesFlagFilters, type FlagFilters } from '../lib/rows';
+import { useFlipRowsById } from '../lib/useItemFlags';
 import { useTier } from '../lib/tier';
 import { CopyValue } from '../components/CopyValue';
+import { FlagBadges } from '../components/FlagBadges';
+import { FlagSelector } from '../components/FlagSelector';
 import { GpText } from '../components/GpText';
 import { Icon, type IconName } from '../components/Icon';
 import { ItemIcon } from '../components/ItemIcon';
@@ -112,39 +116,59 @@ export default function ToolsPage() {
   const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
   const tool = (params.get('tool') as Tool) || 'alch';
-  const [minVolume, setMinVolume] = useState(10);
+  const [minVolume, setMinVolume] = useState(5);
   const [onlyMine, setOnlyMine] = useState(false);
   const [geOnly, setGeOnly] = useState(true);
   const [f2pOnly, setF2pOnly] = useState(false);
   const [category, setCategory] = useState('all');
   const [viaFilter, setViaFilter] = useState('all');
+  const [flags, setFlags] = useState<FlagFilters>(EMPTY_FLAGS);
   const [openSet, setOpenSet] = useState<ResolvedSet | null>(null);
+  const flipRowsById = useFlipRowsById();
+
+  // Rows keyed to a single tradeable item (alch, sets) carry that item's market
+  // flags; family/method rows have no single item, so they match only "any"/"hide".
+  const keepByFlags = (itemId: number | null) =>
+    matchesFlagFilters(itemId === null ? undefined : flipRowsById.get(itemId), flags);
 
   const alchRows = useMemo(
-    () => (data && tool === 'alch' ? computeAlchRows(data.items, config).filter((r) => r.item.volume1h >= minVolume) : []),
-    [data, config, tool, minVolume],
+    () =>
+      data && tool === 'alch'
+        ? computeAlchRows(data.items, config).filter(
+            (r) => r.item.volume1h >= minVolume && keepByFlags(r.item.id),
+          )
+        : [],
+    [data, config, tool, minVolume, flags, flipRowsById],
   );
   const decantRows = useMemo(
-    () => (data && tool === 'decant' ? computeDecantRows(data.items, config).filter((r) => r.volume1h >= minVolume) : []),
-    [data, config, tool, minVolume],
+    () =>
+      data && tool === 'decant'
+        ? computeDecantRows(data.items, config).filter(
+            (r) => r.volume1h >= minVolume && keepByFlags(null),
+          )
+        : [],
+    [data, config, tool, minVolume, flags, flipRowsById],
   );
   const setRows = useMemo(() => {
     if (!data || tool !== 'sets') return [];
     return computeSetRows(data.items, config).filter(
-      (r) => r.volume1h >= minVolume && (viaFilter === 'all' || r.via === viaFilter),
+      (r) =>
+        r.volume1h >= minVolume &&
+        (viaFilter === 'all' || r.via === viaFilter) &&
+        keepByFlags(r.set.id),
     );
-  }, [data, config, tool, minVolume, viaFilter]);
+  }, [data, config, tool, minVolume, viaFilter, flags, flipRowsById]);
   const methodRows = useMemo(() => {
     if (!data || tool !== 'methods') return [];
     let rows = computeMethodRows(data.items, config, character?.levels).filter(
-      (r) => r.volume1h >= minVolume,
+      (r) => r.volume1h >= minVolume && keepByFlags(null),
     );
     if (geOnly) rows = rows.filter((r) => r.def.atGE);
     if (f2pOnly) rows = rows.filter((r) => !r.def.members);
     if (category !== 'all') rows = rows.filter((r) => r.def.category === category);
     if (onlyMine && character) rows = rows.filter((r) => r.meetsReqs);
     return rows;
-  }, [data, config, tool, minVolume, character, onlyMine, geOnly, f2pOnly, category]);
+  }, [data, config, tool, minVolume, character, onlyMine, geOnly, f2pOnly, category, flags, flipRowsById]);
 
   const visibleAlch = entitlements.alchRows === null ? alchRows : alchRows.slice(0, entitlements.alchRows);
   const visibleDecant = entitlements.decantRows === null ? decantRows : decantRows.slice(0, entitlements.decantRows);
@@ -189,6 +213,8 @@ export default function ToolsPage() {
         </label>
       </div>
 
+      <FlagSelector flags={flags} onChange={setFlags} />
+
       {isPending ? (
         <TableSkeleton rows={8} />
       ) : tool === 'alch' ? (
@@ -221,6 +247,7 @@ export default function ToolsPage() {
                       <span className="flex items-center gap-2">
                         <ItemIcon icon={r.item.icon} name={r.item.name} />
                         {r.item.name}
+                        <FlagBadges row={flipRowsById.get(r.item.id)} />
                       </span>
                     </td>
                     <td className={`${td} text-right`}><GpText amount={r.buyAt} /></td>
@@ -347,6 +374,7 @@ export default function ToolsPage() {
                         >
                           <Icon name="shield" size={13} />
                         </button>
+                        <FlagBadges row={flipRowsById.get(r.set.id)} />
                       </span>
                     </td>
                     <td className={td}>

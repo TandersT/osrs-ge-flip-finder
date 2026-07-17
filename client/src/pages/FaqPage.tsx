@@ -234,6 +234,19 @@ export default function FaqPage() {
             single outlier trade are unreliable.
           </p>
         </Q>
+        <Q q='What do "fat", "whale" and "prime" mean?'>
+          <p>
+            The large-margin flags. They key off ROI — the post-tax margin as a share of the
+            buy price — so they scale with the item instead of rewarding expensive items for a
+            big gp number.
+          </p>
+          <p>
+            <strong>Fat:</strong> ROI ≥ 10%. <strong>Whale:</strong> ROI ≥ 25% — an exceptional
+            return per gp risked. <strong>Prime:</strong> a fat margin (≥10%) that also trades
+            at least 50 units/hour, so you can realistically fill it. Pair <em>prime</em> with
+            hiding <em>thin</em> to skip the unfillable spreads.
+          </p>
+        </Q>
       </Section>
 
       <Section title="Long-term signals">

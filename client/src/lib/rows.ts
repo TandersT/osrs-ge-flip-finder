@@ -8,7 +8,18 @@ import type { FlipRow } from '@osrs-flip/shared';
 export type Membership = 'all' | 'members' | 'f2p';
 
 /** Row flags a user can filter on. Order here is the display order of the chips. */
-export const FLAG_KEYS = ['exempt', 'stale', 'thin', 'unstable', 'hot', 'rising', 'falling'] as const;
+export const FLAG_KEYS = [
+  'exempt',
+  'fat',
+  'whale',
+  'prime',
+  'stale',
+  'thin',
+  'unstable',
+  'hot',
+  'rising',
+  'falling',
+] as const;
 export type FlagKey = (typeof FLAG_KEYS)[number];
 /** Tri-state per flag: ignore it, keep only flagged rows, or hide flagged rows. */
 export type FlagMode = 'any' | 'only' | 'hide';
@@ -16,6 +27,9 @@ export type FlagFilters = Record<FlagKey, FlagMode>;
 
 export const EMPTY_FLAGS: FlagFilters = {
   exempt: 'any',
+  fat: 'any',
+  whale: 'any',
+  prime: 'any',
   stale: 'any',
   thin: 'any',
   unstable: 'any',
@@ -26,6 +40,9 @@ export const EMPTY_FLAGS: FlagFilters = {
 
 export const FLAG_GETTERS: Record<FlagKey, (row: FlipRow) => boolean> = {
   exempt: (r) => r.taxExempt,
+  fat: (r) => r.isFat,
+  whale: (r) => r.isWhale,
+  prime: (r) => r.isPrime,
   stale: (r) => r.isStale,
   thin: (r) => r.isThin,
   unstable: (r) => r.isUnstable,
@@ -33,6 +50,23 @@ export const FLAG_GETTERS: Record<FlagKey, (row: FlipRow) => boolean> = {
   rising: (r) => r.isRising,
   falling: (r) => r.isFalling,
 };
+
+/**
+ * Tri-state flag test for a single row, reused by the item lists and by the
+ * other tabs (deals/long-term/tools) that resolve a row's flags by item id.
+ * A missing row (no live snapshot for this id) counts every flag as absent:
+ * it survives "hide", is dropped by "only", and is untouched by "any".
+ */
+export function matchesFlagFilters(row: FlipRow | undefined, flags: FlagFilters): boolean {
+  for (const key of FLAG_KEYS) {
+    const mode = flags[key];
+    if (mode === 'any') continue;
+    const flagged = row !== undefined && FLAG_GETTERS[key](row);
+    if (mode === 'only' && !flagged) return false;
+    if (mode === 'hide' && flagged) return false;
+  }
+  return true;
+}
 
 export interface Filters {
   search: string;
@@ -46,11 +80,14 @@ export interface Filters {
   flags: FlagFilters;
 }
 
+/** Default Min vol/1h floor — hides all-but-dead items unless the user opts out. */
+export const DEFAULT_MIN_VOLUME_1H = 5;
+
 export const EMPTY_FILTERS: Filters = {
   search: '',
   minMargin: null,
   minRoi: null,
-  minVolume1h: null,
+  minVolume1h: DEFAULT_MIN_VOLUME_1H,
   minBuyPrice: null,
   maxBuyPrice: null,
   membership: 'all',
@@ -105,13 +142,7 @@ export function applyFilters(rows: FlipRow[], f: Filters): FlipRow[] {
     if (!nameMatches(row.name, f.search)) return false;
     if (f.membership === 'members' && !row.members) return false;
     if (f.membership === 'f2p' && row.members) return false;
-    for (const key of FLAG_KEYS) {
-      const mode = f.flags[key];
-      if (mode === 'any') continue;
-      const flagged = FLAG_GETTERS[key](row);
-      if (mode === 'only' && !flagged) return false;
-      if (mode === 'hide' && flagged) return false;
-    }
+    if (!matchesFlagFilters(row, f.flags)) return false;
     if (f.minVolume1h !== null && row.volume1h < f.minVolume1h) return false;
     if (f.minMargin !== null || f.minRoi !== null || f.minBuyPrice !== null || f.maxBuyPrice !== null) {
       if (row.flip === null) return false;

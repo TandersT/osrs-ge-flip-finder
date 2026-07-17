@@ -1,5 +1,6 @@
 import type { SortingState } from '@tanstack/react-table';
 import {
+  DEFAULT_MIN_VOLUME_1H,
   EMPTY_FILTERS,
   EMPTY_FLAGS,
   FLAG_KEYS,
@@ -16,6 +17,17 @@ const num = (v: string | null): number | null => {
   const n = Number(v);
   return Number.isFinite(n) ? n : null;
 };
+
+/**
+ * Min vol/1h defaults to a low floor rather than "off", so a fresh view hides
+ * near-dead items. Absent param => the default; the explicit `off` token means
+ * the user cleared it (distinct from "not set"), so a shared link keeps it off.
+ */
+function minVolumeFromParam(raw: string | null): number | null {
+  if (raw === null) return DEFAULT_MIN_VOLUME_1H;
+  if (raw === 'off') return null;
+  return num(raw);
+}
 
 /** Each flag is its own param (`stale=hide`, `exempt=only`); `any` is omitted. */
 function flagsFromParams(p: URLSearchParams): FlagFilters {
@@ -41,7 +53,7 @@ export function filtersFromParams(p: URLSearchParams): Filters {
     search: p.get('q') ?? '',
     minMargin: num(p.get('mm')),
     minRoi: num(p.get('roi')),
-    minVolume1h: num(p.get('mv')),
+    minVolume1h: minVolumeFromParam(p.get('mv')),
     minBuyPrice: num(p.get('bmin')),
     maxBuyPrice: num(p.get('bmax')),
     membership: world === 'members' || world === 'f2p' ? (world as Membership) : 'all',
@@ -62,7 +74,9 @@ export function paramsFromState(f: Filters, sorting: SortingState): URLSearchPar
   if (f.search !== EMPTY_FILTERS.search) p.set('q', f.search);
   if (f.minMargin !== null) p.set('mm', String(f.minMargin));
   if (f.minRoi !== null) p.set('roi', String(f.minRoi));
-  if (f.minVolume1h !== null) p.set('mv', String(f.minVolume1h));
+  // Default is omitted; "off" (user cleared it) is written explicitly.
+  if (f.minVolume1h === null) p.set('mv', 'off');
+  else if (f.minVolume1h !== DEFAULT_MIN_VOLUME_1H) p.set('mv', String(f.minVolume1h));
   if (f.minBuyPrice !== null) p.set('bmin', String(f.minBuyPrice));
   if (f.maxBuyPrice !== null) p.set('bmax', String(f.maxBuyPrice));
   if (f.membership !== 'all') p.set('world', f.membership);

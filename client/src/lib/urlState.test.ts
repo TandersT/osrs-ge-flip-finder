@@ -30,3 +30,21 @@ describe('flag filters in the URL', () => {
     expect(filtersFromParams(new URLSearchParams('hot=yes&rising=2')).flags).toEqual(EMPTY_FLAGS);
   });
 });
+
+describe('Min vol/1h default in the URL', () => {
+  it('defaults to 5 when absent and omits the default from the URL', () => {
+    expect(filtersFromParams(new URLSearchParams('')).minVolume1h).toBe(5);
+    const params = paramsFromState(EMPTY_FILTERS, DEFAULT_SORTING);
+    expect(params.get('mv')).toBeNull();
+  });
+
+  it('round-trips an explicit value and an explicit "off"', () => {
+    const withValue = paramsFromState({ ...EMPTY_FILTERS, minVolume1h: 250 }, DEFAULT_SORTING);
+    expect(withValue.get('mv')).toBe('250');
+    expect(filtersFromParams(withValue).minVolume1h).toBe(250);
+
+    const off = paramsFromState({ ...EMPTY_FILTERS, minVolume1h: null }, DEFAULT_SORTING);
+    expect(off.get('mv')).toBe('off');
+    expect(filtersFromParams(off).minVolume1h).toBeNull();
+  });
+});

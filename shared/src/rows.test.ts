@@ -72,4 +72,22 @@ describe('market flags', () => {
     const thin = row({ low: 1_000, high: 1_300, volume1h: 10, dailyVolume: 100 });
     expect(thin.isThin).toBe(true);
   });
+
+  it('fat/whale/prime: large margins keyed off ROI (share of the buy price)', () => {
+    // default snapshot is ~7.7% ROI — below the 10% "fat" line
+    expect(row({}).isFat).toBe(false);
+    // ~15.5% ROI on 500 units/h: fat and fillable (prime), but not a whale
+    const fat = row({ low: 1_000, high: 1_180 });
+    expect(fat.isFat).toBe(true);
+    expect(fat.isPrime).toBe(true);
+    expect(fat.isWhale).toBe(false);
+    // ~37% ROI clears the whale line too
+    const whale = row({ low: 1_000, high: 1_400 });
+    expect(whale.isWhale).toBe(true);
+    expect(whale.isFat).toBe(true);
+    // a fat margin on fewer than 50 units/h is not "prime" — can't reliably fill
+    const illiquid = row({ low: 1_000, high: 1_180, volume1h: 49 });
+    expect(illiquid.isFat).toBe(true);
+    expect(illiquid.isPrime).toBe(false);
+  });
 });

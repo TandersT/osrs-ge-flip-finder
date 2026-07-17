@@ -2,11 +2,15 @@ import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import type { LongtermResponse, LongtermRow } from '@osrs-flip/shared';
+import { FlagBadges } from '../components/FlagBadges';
+import { FlagSelector } from '../components/FlagSelector';
 import { GpText } from '../components/GpText';
 import { Icon } from '../components/Icon';
 import { ItemIcon } from '../components/ItemIcon';
 import { TableSkeleton } from '../components/Skeleton';
 import { UnlockStrip } from '../components/UnlockStrip';
+import { EMPTY_FLAGS, matchesFlagFilters, type FlagFilters } from '../lib/rows';
+import { useFlipRowsById } from '../lib/useItemFlags';
 import { useTier } from '../lib/tier';
 
 type Lens = 'all' | 'dips' | 'momentum';
@@ -51,6 +55,8 @@ export default function LongTermPage() {
   const [lens, setLens] = useState<Lens>('all');
   const [sortKey, setSortKey] = useState<SortKey>('zScore90');
   const [sortDesc, setSortDesc] = useState(false);
+  const [flags, setFlags] = useState<FlagFilters>(EMPTY_FLAGS);
+  const flipRowsById = useFlipRowsById();
 
   const { data, isPending, isError, error } = useQuery({
     queryKey: ['longterm'],
@@ -63,6 +69,7 @@ export default function LongTermPage() {
     let filtered = data.rows;
     if (lens === 'dips') filtered = filtered.filter((r) => r.isDip);
     if (lens === 'momentum') filtered = filtered.filter((r) => r.isMomentum);
+    filtered = filtered.filter((r) => matchesFlagFilters(flipRowsById.get(r.id), flags));
     const dir = sortDesc ? -1 : 1;
     return [...filtered].sort((a, b) => {
       const av = a[sortKey];
@@ -72,7 +79,7 @@ export default function LongTermPage() {
       if (typeof av === 'string' && typeof bv === 'string') return dir * av.localeCompare(bv);
       return dir * ((av as number) - (bv as number));
     });
-  }, [data, lens, sortKey, sortDesc]);
+  }, [data, lens, sortKey, sortDesc, flags, flipRowsById]);
 
   // Free tier sees the top rows as a teaser; counts above stay honest
   const visible = entitlements.longtermRows === null ? rows : rows.slice(0, entitlements.longtermRows);
@@ -131,6 +138,8 @@ export default function LongTermPage() {
         {lensButton('dips', 'Dip candidates', data.rows.filter((r) => r.isDip).length)}
         {lensButton('momentum', 'Momentum', data.rows.filter((r) => r.isMomentum).length)}
       </div>
+
+      <FlagSelector flags={flags} onChange={setFlags} />
 
       <div className="overflow-auto rounded border border-panel-border bg-panel" style={{ maxHeight: 'calc(100vh - 320px)', minHeight: 200 }}>
         <table className="w-full min-w-[900px] border-collapse text-sm">
@@ -211,6 +220,7 @@ export default function LongTermPage() {
                       momentum
                     </span>
                   )}
+                  <FlagBadges row={flipRowsById.get(row.id)} className="ml-1" />
                 </td>
               </tr>
             ))}
