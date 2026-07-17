@@ -336,12 +336,18 @@ describe('patch badges', () => {
     ['shark', 385],
     ['sea turtle', 397],
   ]);
-  const page = (pageid: number, title: string, date: string, body: string) => ({
+  const page = (
+    pageid: number,
+    title: string,
+    date: string,
+    body: string,
+    category: string = 'game',
+  ) => ({
     pageid,
     title,
     // parseUpdateTemplate reads the category via a `category=` param (not `type=`)
     // and the date via parseWikiDate("12 July 2026") — mirror both exactly.
-    wikitext: `{{Update|date=${date}|category=game}}\n${body}`,
+    wikitext: `{{Update|date=${date}|category=${category}}}\n${body}`,
   });
 
   it('keeps only recent game updates and resolves linked items', () => {
@@ -350,11 +356,26 @@ describe('patch badges', () => {
         page(1, 'Update:Fishing Rework', '12 July 2026', 'The [[Shark]] spawn rate changed.'),
         page(2, 'Update:Ancient News', '1 January 2020', '[[Shark]] nerf of old.'),
         page(3, 'Update:No Items Here', '13 July 2026', 'Only [[Sailing]] things.'),
+        page(4, 'Update:Poll Result', '12 July 2026', 'The [[Shark]] poll passed.', 'poll'),
+        // Page with no parseable date (no date= param)
+        {
+          pageid: 5,
+          title: 'Update:Undated Shark News',
+          wikitext: '{{Update|category=game}}\nThe [[Shark]] spawn rate changed.',
+        },
+        page(6, 'Update:Boundary Update', '1 July 2026', 'The [[Shark]] spawn rate changed.'),
       ],
       nameToId,
       '2026-07-01',
     );
-    expect(updates).toHaveLength(2);
+    // Expected: Fishing Rework (12 Jul, game), No Items Here (13 Jul, game), Boundary Update (1 Jul, game)
+    // Excluded: Ancient News (too old), Poll Result (non-game), Undated (no date)
+    expect(updates).toHaveLength(3);
+    expect(updates.map((u) => u.title)).toEqual([
+      'Fishing Rework',
+      'No Items Here',
+      'Boundary Update',
+    ]);
     const fishing = updates.find((u) => u.title === 'Fishing Rework')!;
     expect(fishing.date).toBe('2026-07-12');
     expect(fishing.url).toContain('Fishing_Rework');
