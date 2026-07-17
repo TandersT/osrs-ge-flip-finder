@@ -1,6 +1,14 @@
 import { describe, expect, it } from 'vitest';
-import type { TimeseriesPoint } from '@osrs-flip/shared';
-import { alignPair, dailyMids, scanEpisodes, spreadZSeries, weeklyLogReturns } from './divergence.js';
+import type { ItemCategory, ItemSnapshot, TimeseriesPoint } from '@osrs-flip/shared';
+import {
+  alignPair,
+  computeDivergence,
+  computePair,
+  dailyMids,
+  scanEpisodes,
+  spreadZSeries,
+  weeklyLogReturns,
+} from './divergence.js';
 
 const DAY = 86_400;
 const T0 = 1_700_000_000;
@@ -100,5 +108,145 @@ describe('scanEpisodes', () => {
   it('skips null gaps without breaking state', () => {
     const z = [null, null, 2.5, null, 2.2, 0.2];
     expect(scanEpisodes(z, 2, 0.5, 30).count).toBe(1);
+  });
+});
+
+/** Minimal live snapshot for tests; override what a case cares about. */
+function mkItem(id: number, name: string, over: Partial<ItemSnapshot> = {}): ItemSnapshot {
+  return {
+    id,
+    name,
+    icon: `${name}.png`,
+    members: true,
+    limit: 10_000,
+    value: null,
+    highalch: null,
+    high: 1_050,
+    highTime: T0,
+    low: 1_000,
+    lowTime: T0,
+    avgHighPrice1h: null,
+    avgLowPrice1h: null,
+    volume1h: 0,
+    dailyVolume: 50_000,
+    taxExempt: false,
+    ...over,
+  };
+}
+
+/** Shared market wave both legs of a healthy pair follow. */
+const wave = (i: number) => 1_000 + 150 * Math.sin(i / 9);
+/** Small independent wobble so pair spreads have nonzero variance. */
+const wobble = (i: number) => 1 + 0.01 * Math.sin(i / 5);
+
+describe('computePair', () => {
+  it('qualifies co-moving pairs and reports no signal when the spread is normal', () => {
+    const a = dailyMids(mkSeries(365, wave));
+    const b = dailyMids(mkSeries(365, (i) => (wave(i) * 0.6 + 400) * wobble(i)));
+    const pair = computePair(a, b);
+    expect(pair.eligible).toBe(true);
+    expect(pair.weeklyR!).toBeGreaterThan(0.4);
+    expect(Math.abs(pair.z!)).toBeLessThan(2);
+  });
+
+  it('rejects pairs with insufficient overlap or low correlation', () => {
+    const short = dailyMids(mkSeries(100, wave));
+    expect(computePair(short, short).eligible).toBe(false);
+    const a = dailyMids(mkSeries(365, wave));
+    const noise = dailyMids(mkSeries(365, (i) => 1_000 + 300 * Math.sin(i / 2.3 + 1)));
+    const pair = computePair(a, noise);
+    expect(pair.eligible).toBe(false);
+    expect(pair.z).toBeNull();
+  });
+
+  it('flags a leg that breaks away downward', () => {
+    const a = dailyMids(mkSeries(365, wave));
+    const drop = (i: number) =>
+      wave(i) * wobble(i) * (i >= 350 ? 1 - 0.015 * (i - 350) : 1);
+    const pair = computePair(dailyMids(mkSeries(365, drop)), a);
+    expect(pair.eligible).toBe(true);
+    expect(pair.z!).toBeLessThanOrEqual(-2); // a-leg (the dropper) is cheap
+  });
+});
+
+describe('computeDivergence', () => {
+  const CATS: ItemCategory[] = [
+    { id: 'test-fish', label: 'Test fish', members: ['Alpha fish', 'Beta fish', 'Gamma fish'] },
+  ];
+  const alpha = mkItem(1, 'Alpha fish');
+  const beta = mkItem(2, 'Beta fish');
+  const gamma = mkItem(3, 'Gamma fish');
+  const flipCfg = { captureRate: 0.1, offerOffset: 1 };
+
+  function series(drop: boolean) {
+    const gammaPrice = (i: number) =>
+      (wave(i) * 0.8 + 200) * wobble(i) * (drop && i >= 350 ? 1 - 0.015 * (i - 350) : 1);
+    return new Map([
+      [1, mkSeries(365, wave)],
+      [2, mkSeries(365, (i) => (wave(i) * 0.6 + 400) * wobble(i / 2 + 3))],
+      [3, mkSeries(365, gammaPrice)],
+    ]);
+  }
+
+  it('aggregates flagged pairs into a laggard deal with evidence', () => {
+    const { deals, groups } = computeDivergence(CATS, [alpha, beta, gamma], series(true), flipCfg);
+    expect(deals).toHaveLength(1);
+    const deal = deals[0]!;
+    expect(deal.itemId).toBe(3);
+    expect(deal.groupId).toBe('test-fish');
+    expect(deal.laggingPairs).toBeGreaterThanOrEqual(1);
+    expect(deal.eligiblePairs).toBe(2);
+    expect(deal.pairs[0]!.z).toBeLessThanOrEqual(-2);
+    expect(deal.pairs[0]!.series90).toHaveLength(90);
+    expect(deal.pairs[0]!.series90![0]!.item).toBeCloseTo(1, 6); // normalized to window start
+    expect(deal.headline.item30d!).toBeLessThan(deal.headline.peersMedian30d!);
+    expect(deal.buy).toBe(1_001); // low + offerOffset
+    expect(deal.sell).toBe(1_049); // high - offerOffset
+    expect(deal.margin).not.toBeNull();
+    // groups panel reflects the same build
+    expect(groups).toHaveLength(1);
+    expect(groups[0]!.eligiblePairs).toBeGreaterThanOrEqual(2);
+    expect(groups[0]!.members.every((m) => !m.missing)).toBe(true);
+  });
+
+  it('returns no deals when everything tracks', () => {
+    const { deals } = computeDivergence(CATS, [alpha, beta, gamma], series(false), flipCfg);
+    expect(deals).toHaveLength(0);
+  });
+
+  it('enforces the volume floor', () => {
+    const thinGamma = mkItem(3, 'Gamma fish', { dailyVolume: 500 });
+    const { deals, groups } = computeDivergence(CATS, [alpha, beta, thinGamma], series(true), flipCfg);
+    expect(deals).toHaveLength(0);
+    const member = groups[0]!.members.find((m) => m.name === 'Gamma fish')!;
+    expect(member.eligible).toBe(false);
+    expect(member.missing).toBe(false);
+  });
+
+  it('marks unresolved names and missing series as missing', () => {
+    const { deals, groups } = computeDivergence(
+      CATS,
+      [alpha, beta], // gamma not in the mapping at all
+      new Map([
+        [1, mkSeries(365, wave)],
+        [2, mkSeries(365, (i) => (wave(i) * 0.6 + 400) * wobble(i / 2 + 3))],
+      ]),
+      flipCfg,
+    );
+    expect(deals).toHaveLength(0); // remaining pair tracks fine
+    const member = groups[0]!.members.find((m) => m.name === 'Gamma fish')!;
+    expect(member.missing).toBe(true);
+    expect(member.itemId).toBeNull();
+  });
+
+  it('flags the quiet item when a peer soars (the shark-vs-turtle case)', () => {
+    const soar = new Map([
+      [1, mkSeries(365, (i) => wave(i) * wobble(i))],
+      [2, mkSeries(365, (i) => (wave(i) * 0.6 + 400) * wobble(i / 2 + 3))],
+      [3, mkSeries(365, (i) => (wave(i) * 0.8 + 200) * wobble(i / 3 + 1) * (i >= 350 ? 1 + 0.015 * (i - 350) : 1))],
+    ]);
+    const { deals } = computeDivergence(CATS, [alpha, beta, gamma], soar, flipCfg);
+    // gamma soared: the deal (if the gate passes) must be a QUIET item, never gamma
+    for (const d of deals) expect(d.itemId).not.toBe(3);
   });
 });
