@@ -9,3 +9,5 @@ export * from './rows.js';
 export * from './methods.js';
 export * from './dealTypes.js';
 export * from './patchTypes.js';
+export * from './categories.js';
+export * from './divergenceTypes.js';
