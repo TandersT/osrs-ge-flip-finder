@@ -1,10 +1,17 @@
 import { describe, expect, it } from 'vitest';
-import type { ItemCategory, ItemSnapshot, TimeseriesPoint } from '@osrs-flip/shared';
+import type {
+  DivergenceDeal,
+  ItemCategory,
+  ItemSnapshot,
+  TimeseriesPoint,
+} from '@osrs-flip/shared';
 import {
   alignPair,
+  attachPatchBadges,
   computeDivergence,
   computePair,
   dailyMids,
+  parseRecentUpdates,
   scanEpisodes,
   spreadZSeries,
   weeklyLogReturns,
@@ -29,7 +36,13 @@ describe('dailyMids', () => {
     const pts: TimeseriesPoint[] = [
       { timestamp: 1, avgHighPrice: 110, avgLowPrice: 90, highPriceVolume: 1, lowPriceVolume: 1 },
       { timestamp: 2, avgHighPrice: null, avgLowPrice: 80, highPriceVolume: 0, lowPriceVolume: 1 },
-      { timestamp: 3, avgHighPrice: null, avgLowPrice: null, highPriceVolume: 0, lowPriceVolume: 0 },
+      {
+        timestamp: 3,
+        avgHighPrice: null,
+        avgLowPrice: null,
+        highPriceVolume: 0,
+        lowPriceVolume: 0,
+      },
     ];
     expect(dailyMids(pts)).toEqual([
       { t: 1, mid: 100 },
@@ -161,8 +174,7 @@ describe('computePair', () => {
 
   it('flags a leg that breaks away downward', () => {
     const a = dailyMids(mkSeries(365, wave));
-    const drop = (i: number) =>
-      wave(i) * wobble(i) * (i >= 350 ? 1 - 0.015 * (i - 350) : 1);
+    const drop = (i: number) => wave(i) * wobble(i) * (i >= 350 ? 1 - 0.015 * (i - 350) : 1);
     const pair = computePair(dailyMids(mkSeries(365, drop)), a);
     expect(pair.eligible).toBe(true);
     expect(pair.z!).toBeLessThanOrEqual(-2); // a-leg (the dropper) is cheap
@@ -216,7 +228,12 @@ describe('computeDivergence', () => {
 
   it('enforces the volume floor', () => {
     const thinGamma = mkItem(3, 'Gamma fish', { dailyVolume: 500 });
-    const { deals, groups } = computeDivergence(CATS, [alpha, beta, thinGamma], series(true), flipCfg);
+    const { deals, groups } = computeDivergence(
+      CATS,
+      [alpha, beta, thinGamma],
+      series(true),
+      flipCfg,
+    );
     expect(deals).toHaveLength(0);
     const member = groups[0]!.members.find((m) => m.name === 'Gamma fish')!;
     expect(member.eligible).toBe(false);
@@ -262,7 +279,13 @@ describe('computeDivergence', () => {
     const soar = new Map([
       [1, mkSeries(365, (i) => wave(i) * wobble(i))],
       [2, mkSeries(365, (i) => (wave(i) * 0.6 + 400) * wobble(i / 2 + 3))],
-      [3, mkSeries(365, (i) => (wave(i) * 0.8 + 200) * wobble(i / 3 + 1) * (i >= 350 ? 1 + 0.015 * (i - 350) : 1))],
+      [
+        3,
+        mkSeries(
+          365,
+          (i) => (wave(i) * 0.8 + 200) * wobble(i / 3 + 1) * (i >= 350 ? 1 + 0.015 * (i - 350) : 1),
+        ),
+      ],
     ]);
     const { deals } = computeDivergence(CATS, [alpha, beta, gamma], soar, flipCfg);
     // gamma soared: the deal (if the gate passes) must be a QUIET item, never gamma
@@ -275,11 +298,13 @@ describe('computeDivergence', () => {
     // median 30d change across L's peers (P1 way up, P2 way down) lands
     // below L's own ~flat 30d change — the direction-sanity gate must block L.
     const seriesL = mkSeries(365, (i) => wave(i) * wobble(i));
-    const seriesP1 = mkSeries(365, (i) =>
-      (wave(i) * 0.6 + 400) * wobble(i / 2 + 3) * (i >= 345 ? 1 + 0.012 * (i - 345) : 1),
+    const seriesP1 = mkSeries(
+      365,
+      (i) => (wave(i) * 0.6 + 400) * wobble(i / 2 + 3) * (i >= 345 ? 1 + 0.012 * (i - 345) : 1),
     );
-    const seriesP2 = mkSeries(365, (i) =>
-      (wave(i) * 0.8 + 200) * wobble(i / 3 + 1) * (i >= 340 ? 1 - 0.013 * (i - 340) : 1),
+    const seriesP2 = mkSeries(
+      365,
+      (i) => (wave(i) * 0.8 + 200) * wobble(i / 3 + 1) * (i >= 340 ? 1 - 0.013 * (i - 340) : 1),
     );
 
     // Prove the L-P1 pair genuinely flags, with L (alpha) as the cheap leg.
@@ -303,5 +328,72 @@ describe('computeDivergence', () => {
     // Sanity guard so this can't pass vacuously: gamma crashed harder than
     // both peers, so it genuinely lags and must list.
     expect(deals.length).toBeGreaterThan(0);
+  });
+});
+
+describe('patch badges', () => {
+  const nameToId = new Map([
+    ['shark', 385],
+    ['sea turtle', 397],
+  ]);
+  const page = (pageid: number, title: string, date: string, body: string) => ({
+    pageid,
+    title,
+    // parseUpdateTemplate reads the category via a `category=` param (not `type=`)
+    // and the date via parseWikiDate("12 July 2026") — mirror both exactly.
+    wikitext: `{{Update|date=${date}|category=game}}\n${body}`,
+  });
+
+  it('keeps only recent game updates and resolves linked items', () => {
+    const updates = parseRecentUpdates(
+      [
+        page(1, 'Update:Fishing Rework', '12 July 2026', 'The [[Shark]] spawn rate changed.'),
+        page(2, 'Update:Ancient News', '1 January 2020', '[[Shark]] nerf of old.'),
+        page(3, 'Update:No Items Here', '13 July 2026', 'Only [[Sailing]] things.'),
+      ],
+      nameToId,
+      '2026-07-01',
+    );
+    expect(updates).toHaveLength(2);
+    const fishing = updates.find((u) => u.title === 'Fishing Rework')!;
+    expect(fishing.date).toBe('2026-07-12');
+    expect(fishing.url).toContain('Fishing_Rework');
+    expect([...fishing.mentions]).toEqual([385]);
+  });
+
+  it('badges deals whose laggard or flagged peer is mentioned, newest update first', () => {
+    const deal = (itemId: number, peerId: number): DivergenceDeal => ({
+      itemId,
+      name: `item-${itemId}`,
+      icon: null,
+      groupId: 'g',
+      groupLabel: 'G',
+      laggingPairs: 1,
+      eligiblePairs: 1,
+      headline: { item30d: -0.1, peersMedian30d: 0.05 },
+      pairs: [
+        {
+          peerId,
+          peerName: `item-${peerId}`,
+          z: -2.5,
+          weeklyR: 0.8,
+          episodes: { count: 0, closedWithin30d: 0, medianDays: null },
+        },
+      ],
+      buy: null,
+      sell: null,
+      margin: null,
+    });
+    const updates = [
+      { title: 'Old', date: '2026-07-02', url: 'u1', mentions: new Set([397]) },
+      { title: 'New', date: '2026-07-12', url: 'u2', mentions: new Set([397]) },
+    ];
+    const [laggardHit, peerHit, noHit] = attachPatchBadges(
+      [deal(397, 385), deal(1, 397), deal(1, 2)],
+      updates,
+    );
+    expect(laggardHit!.patch?.title).toBe('New'); // newest wins
+    expect(peerHit!.patch?.title).toBe('New'); // peer mention badges too
+    expect(noHit!.patch).toBeUndefined();
   });
 });

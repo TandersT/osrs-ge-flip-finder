@@ -13,8 +13,18 @@ export interface UpdateTemplate {
 }
 
 const MONTHS: Record<string, number> = {
-  january: 1, february: 2, march: 3, april: 4, may: 5, june: 6,
-  july: 7, august: 8, september: 9, october: 10, november: 11, december: 12,
+  january: 1,
+  february: 2,
+  march: 3,
+  april: 4,
+  may: 5,
+  june: 6,
+  july: 7,
+  august: 8,
+  september: 9,
+  october: 10,
+  november: 11,
+  december: 12,
 };
 
 /** Parse "29 March 2004" (the wiki's update-date format) to ISO. */
@@ -53,7 +63,8 @@ export function extractLinkTargets(wikitext: string): string[] {
   const out = new Set<string>();
   for (const m of wikitext.matchAll(/\[\[([^\]|#]+)(?:#[^\]|]*)?(?:\|[^\]]*)?\]\]/g)) {
     const target = m[1]!.trim();
-    if (!target || /^(file|image|category|update|user|template|special|media|w|wp):/i.test(target)) continue;
+    if (!target || /^(file|image|category|update|user|template|special|media|w|wp):/i.test(target))
+      continue;
     out.add(target);
   }
   return [...out];
@@ -67,6 +78,11 @@ export function matchMentions(targets: string[], nameToId: Map<string, number>):
     if (id !== undefined) ids.add(id);
   }
   return [...ids];
+}
+
+/** Public wiki URL for a raw page title (spaces become underscores). */
+export function wikiPageUrl(rawTitle: string): string {
+  return `https://oldschool.runescape.wiki/w/${encodeURIComponent(rawTitle.replace(/ /g, '_'))}`;
 }
 
 export interface UpcomingSection {
@@ -86,7 +102,10 @@ export function splitUpcomingSections(wikitext: string): UpcomingSection[] {
   const headings = [...wikitext.matchAll(/^===([^=].*?)===\s*$/gm)];
   for (let i = 0; i < headings.length; i++) {
     const m = headings[i]!;
-    const title = m[1]!.replace(/\[\[|\]\]/g, '').replace(/\{\{[^}]*\}\}/g, '').trim();
+    const title = m[1]!
+      .replace(/\[\[|\]\]/g, '')
+      .replace(/\{\{[^}]*\}\}/g, '')
+      .trim();
     const start = m.index! + m[0].length;
     const end = i + 1 < headings.length ? headings[i + 1]!.index! : wikitext.length;
     // stop at the next level-2 heading so grouping prose doesn't bleed in

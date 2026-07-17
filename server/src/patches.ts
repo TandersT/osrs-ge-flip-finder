@@ -18,6 +18,7 @@ import {
   matchMentions,
   parseUpdateTemplate,
   splitUpcomingSections,
+  wikiPageUrl,
 } from './updateParse.js';
 import { getUpcomingWikitext, getUpdatePages, listUpdatePages } from './updates.js';
 
@@ -64,10 +65,6 @@ interface BuildState {
 let state: BuildState | null = null;
 let building: { done: number; total: number } | null = null;
 let buildPromise: Promise<void> | null = null;
-
-function wikiPageUrl(rawTitle: string): string {
-  return `https://oldschool.runescape.wiki/w/${encodeURIComponent(rawTitle.replace(/ /g, '_'))}`;
-}
 
 /** Pure and exported for tests: hide first, then pins float up in pin order. */
 export function applyOverrides(

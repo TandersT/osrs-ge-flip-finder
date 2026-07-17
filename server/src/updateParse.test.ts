@@ -5,6 +5,7 @@ import {
   parseUpdateTemplate,
   parseWikiDate,
   splitUpcomingSections,
+  wikiPageUrl,
 } from './updateParse.js';
 
 describe('parseWikiDate', () => {
@@ -34,7 +35,9 @@ describe('parseUpdateTemplate', () => {
   });
 
   it('handles website-category posts and missing templates', () => {
-    expect(parseUpdateTemplate('{{Update|date=1 May 2020|category=website}}x').category).toBe('website');
+    expect(parseUpdateTemplate('{{Update|date=1 May 2020|category=website}}x').category).toBe(
+      'website',
+    );
     expect(parseUpdateTemplate('No template here')).toEqual({ date: null, category: null });
   });
 });
@@ -54,7 +57,9 @@ describe('matchMentions', () => {
       ['dragon claws', 13652],
       ['abyssal whip', 4151],
     ]);
-    expect(matchMentions(['Dragon claws', 'Abyssal whip', 'Slayer'], nameToId).sort((a, b) => a - b)).toEqual([4151, 13652]);
+    expect(
+      matchMentions(['Dragon claws', 'Abyssal whip', 'Slayer'], nameToId).sort((a, b) => a - b),
+    ).toEqual([4151, 13652]);
   });
 });
 
@@ -85,5 +90,13 @@ describe('splitUpcomingSections', () => {
   it('strips wiki markup from section titles', () => {
     const sections = splitUpcomingSections('===[[Sailing]] rework===\nBody');
     expect(sections[0]!.title).toBe('Sailing rework');
+  });
+});
+
+describe('wikiPageUrl', () => {
+  it('wikiPageUrl underscores and escapes the raw title', () => {
+    expect(wikiPageUrl('Update:The Blood Moon Rises')).toBe(
+      'https://oldschool.runescape.wiki/w/Update%3AThe_Blood_Moon_Rises',
+    );
   });
 });

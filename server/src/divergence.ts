@@ -8,6 +8,13 @@ import type {
   TimeseriesPoint,
 } from '@osrs-flip/shared';
 import { computeFlip, mean, median, pctChange, pearson, zScore } from '@osrs-flip/shared';
+import {
+  extractLinkTargets,
+  matchMentions,
+  parseUpdateTemplate,
+  wikiPageUrl,
+} from './updateParse.js';
+import { getUpdatePages, listUpdatePages, type StoredUpdatePage } from './updates.js';
 
 /**
  * Divergence engine — pairwise correlation-gated spreads inside curated item
@@ -206,10 +213,18 @@ export function computeDivergence(
         m.item !== null && m.mids !== null && (m.item.dailyVolume ?? 0) >= VOLUME_FLOOR,
     );
 
-    const pairs: { a: (typeof usable)[number]; b: (typeof usable)[number]; comp: PairComputation }[] = [];
+    const pairs: {
+      a: (typeof usable)[number];
+      b: (typeof usable)[number];
+      comp: PairComputation;
+    }[] = [];
     for (let i = 0; i < usable.length; i++) {
       for (let j = i + 1; j < usable.length; j++) {
-        pairs.push({ a: usable[i]!, b: usable[j]!, comp: computePair(usable[i]!.mids, usable[j]!.mids) });
+        pairs.push({
+          a: usable[i]!,
+          b: usable[j]!,
+          comp: computePair(usable[i]!.mids, usable[j]!.mids),
+        });
       }
     }
 
@@ -237,13 +252,19 @@ export function computeDivergence(
     });
 
     // deals: flagged pairs grouped by laggard member
-    const flaggedBy = new Map<string, { peer: (typeof usable)[number]; comp: PairComputation; laggardIsA: boolean }[]>();
+    const flaggedBy = new Map<
+      string,
+      { peer: (typeof usable)[number]; comp: PairComputation; laggardIsA: boolean }[]
+    >();
     for (const p of pairs) {
       if (!p.comp.eligible || p.comp.z === null || Math.abs(p.comp.z) < ENTRY_Z) continue;
       const laggardIsA = p.comp.z < 0; // spread ln(a)-ln(b) low ⇒ a is the cheap leg
       const laggard = laggardIsA ? p.a : p.b;
       const peer = laggardIsA ? p.b : p.a;
-      flaggedBy.set(laggard.name, [...(flaggedBy.get(laggard.name) ?? []), { peer, comp: p.comp, laggardIsA }]);
+      flaggedBy.set(laggard.name, [
+        ...(flaggedBy.get(laggard.name) ?? []),
+        { peer, comp: p.comp, laggardIsA },
+      ]);
     }
 
     for (const [laggardName, flagged] of flaggedBy) {
@@ -315,4 +336,56 @@ export function computeDivergence(
 
   deals.sort((x, y) => y.laggingPairs - x.laggingPairs || x.pairs[0]!.z - y.pairs[0]!.z);
   return { deals, groups };
+}
+
+export interface RecentUpdate {
+  title: string;
+  date: string;
+  url: string;
+  mentions: Set<number>;
+}
+
+/** Pure: recent `game` update pages with their linked-item mentions resolved. */
+export function parseRecentUpdates(
+  pages: StoredUpdatePage[],
+  nameToId: Map<string, number>,
+  sinceIso: string,
+): RecentUpdate[] {
+  const out: RecentUpdate[] = [];
+  for (const page of pages) {
+    const head = parseUpdateTemplate(page.wikitext);
+    if (head.category !== 'game' || head.date === null || head.date < sinceIso) continue;
+    out.push({
+      title: page.title.replace(/^Update:/, ''),
+      date: head.date,
+      url: wikiPageUrl(page.title),
+      mentions: new Set(matchMentions(extractLinkTargets(page.wikitext), nameToId)),
+    });
+  }
+  return out;
+}
+
+/**
+ * Pure: newest recent update that links a deal's laggard or a flagged peer.
+ * Divergences coinciding with a game change often DON'T reconverge — the
+ * badge is a caution, not a bonus.
+ */
+export function attachPatchBadges(
+  deals: DivergenceDeal[],
+  updates: RecentUpdate[],
+): DivergenceDeal[] {
+  const newestFirst = [...updates].sort((a, b) => b.date.localeCompare(a.date));
+  return deals.map((deal) => {
+    const ids = [deal.itemId, ...deal.pairs.map((p) => p.peerId)];
+    const hit = newestFirst.find((u) => ids.some((id) => u.mentions.has(id)));
+    return hit ? { ...deal, patch: { title: hit.title, url: hit.url, date: hit.date } } : deal;
+  });
+}
+
+/** IO wrapper: update pages come from the shared Patch Impact disk cache. */
+export async function fetchRecentUpdates(nameToId: Map<string, number>): Promise<RecentUpdate[]> {
+  const sinceIso = new Date(Date.now() - PATCH_WINDOW_DAYS * 86_400_000).toISOString().slice(0, 10);
+  const refs = await listUpdatePages();
+  const pages = await getUpdatePages(refs);
+  return parseRecentUpdates(pages, nameToId, sinceIso);
 }
