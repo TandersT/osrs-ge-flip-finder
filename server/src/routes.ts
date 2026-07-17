@@ -32,9 +32,9 @@ export function registerApiRoutes(app: FastifyInstance): void {
 
   app.get('/api/longterm', async () => getLongterm());
 
+  // Divergence + Patch Impact (premium pages; enforcement is client-side until payments exist)
   app.get('/api/divergence', async () => getDivergence());
 
-  // Patch Impact (premium page; enforcement is client-side until payments exist)
   app.get('/api/patches', async () => getPatches());
 
   app.get('/api/patches/upcoming', async () => getUpcoming());
