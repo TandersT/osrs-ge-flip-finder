@@ -8,7 +8,15 @@ import type {
   PairSignal,
   TimeseriesPoint,
 } from '@osrs-flip/shared';
-import { computeFlip, ITEM_CATEGORIES, mean, median, pctChange, pearson, zScore } from '@osrs-flip/shared';
+import {
+  computeFlip,
+  ITEM_CATEGORIES,
+  mean,
+  median,
+  pctChange,
+  pearson,
+  zScore,
+} from '@osrs-flip/shared';
 import { config } from './config.js';
 import { getItems } from './items.js';
 import {
