@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import type { DivergenceDeal, DivergenceResponse } from '@osrs-flip/shared';
 import { CopyValue } from '../components/CopyValue';
+import { DivergenceOverlayChart } from '../components/DivergenceOverlayChart';
 import { GpText } from '../components/GpText';
 import { Icon } from '../components/Icon';
 import { ItemIcon } from '../components/ItemIcon';
@@ -103,10 +104,51 @@ function DealCard({ deal }: { deal: DivergenceDeal }) {
   );
 }
 
-/** Expanded evidence: overlay chart + all flagged pairs. Filled in by Task 9. */
+/** Expanded evidence: overlay chart of the worst pair + all flagged pairs. */
 function DealDetail({ deal }: { deal: DivergenceDeal }) {
-  void deal;
-  return null;
+  const worst = deal.pairs[0];
+  return (
+    <div className="flex flex-col gap-3 border-t border-panel-border/60 px-4 py-3">
+      {worst?.series90 && (
+        <DivergenceOverlayChart
+          series={worst.series90}
+          itemName={deal.name}
+          peerName={worst.peerName}
+        />
+      )}
+      <table className="w-full text-left text-xs">
+        <thead>
+          <tr className="opacity-60">
+            <th className="py-1 pr-4 font-medium">Lags behind</th>
+            <th className="py-1 pr-4 font-medium">Spread z</th>
+            <th className="py-1 pr-4 font-medium">Correlation</th>
+            <th className="py-1 font-medium">Past episodes</th>
+          </tr>
+        </thead>
+        <tbody>
+          {deal.pairs.map((p) => (
+            <tr key={p.peerId} className="border-t border-panel-border/40">
+              <td className="py-1.5 pr-4">vs {p.peerName}</td>
+              <td className="py-1.5 pr-4 tabular-nums text-osrs-red">{p.z.toFixed(1)}</td>
+              <td className="py-1.5 pr-4 tabular-nums">{p.weeklyR.toFixed(2)}</td>
+              <td className="py-1.5">
+                {p.episodes.count === 0
+                  ? 'first divergence this year'
+                  : `closed ${p.episodes.closedWithin30d} of ${p.episodes.count} within 30d` +
+                    (p.episodes.medianDays !== null
+                      ? ` · median ${Math.round(p.episodes.medianDays)}d`
+                      : '')}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <p className="text-xs opacity-50">
+        Spreads close from either side — history shows how often this pair snapped back, not which
+        leg moved.
+      </p>
+    </div>
+  );
 }
 
 function DivergenceContent() {
@@ -167,10 +209,49 @@ function DivergenceContent() {
   );
 }
 
-/** Cohesion overview: why quiet groups are quiet. Filled in by Task 9. */
+/** Cohesion overview: why quiet groups are quiet. */
 function GroupsPanel({ groups }: { groups: DivergenceResponse['groups'] }) {
-  void groups;
-  return null;
+  return (
+    <section className="flex flex-col gap-2">
+      <h2 className="text-xs font-semibold uppercase tracking-wide text-gold">
+        Watched categories
+      </h2>
+      <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
+        {groups.map((g) => (
+          <div key={g.id} className="rounded border border-panel-border bg-panel px-3 py-2">
+            <div className="flex items-baseline justify-between">
+              <span className="text-sm font-medium text-parchment">{g.label}</span>
+              <span className="text-xs opacity-50">
+                {g.eligiblePairs} co-moving pair{g.eligiblePairs === 1 ? '' : 's'}
+              </span>
+            </div>
+            <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1">
+              {g.members.map((m) => (
+                <span
+                  key={m.name}
+                  className="flex items-center gap-1 text-xs opacity-80"
+                  title={
+                    m.missing
+                      ? 'No data — name not in the mapping or its price history failed'
+                      : m.eligible
+                        ? `Co-moves with the group (avg weekly-return r ${m.avgR?.toFixed(2) ?? '—'})`
+                        : `Not correlated enough to signal (avg r ${m.avgR?.toFixed(2) ?? '—'}) or too thinly traded`
+                  }
+                >
+                  <span
+                    className={`inline-block h-1.5 w-1.5 rounded-full ${
+                      m.missing ? 'bg-osrs-red' : m.eligible ? 'bg-osrs-green' : 'bg-parchment/30'
+                    }`}
+                  />
+                  {m.name}
+                </span>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
 }
 
 export default function DivergencePage() {
