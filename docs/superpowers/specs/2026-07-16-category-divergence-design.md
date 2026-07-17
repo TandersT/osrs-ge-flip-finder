@@ -29,9 +29,11 @@ mismatches with the evidence to judge them.
 
 ## Curated groups — `shared/src/categories.ts`
 
-`{ id: string; label: string; members: { itemId: number; name: string }[] }` — data
-only, editable without touching code. Starter set (~15 groups, liquid staples; ids
-resolved from the mapping during implementation): high-heal food (Shark, Sea turtle,
+`{ id: string; label: string; members: string[] }` — members are **exact GE item
+names**, resolved against the live mapping at build time (the `methods.ts` convention;
+avoids hand-typing ~80 item ids). Unresolved names surface as `missing` in the groups
+panel and in `coverage` — visible, never silent. Data only, editable without touching
+code. Starter set (~15 groups, liquid staples): high-heal food (Shark, Sea turtle,
 Manta ray, Anglerfish, Dark crab, Monkfish, Cooked karambwan), raw fish (raw versions of
 the same), logs (Oak→Redwood), planks (all four), ores (Iron→Runite, Coal), metal bars
 (Iron→Runite), elemental runes, catalytic runes (Nature, Law, Death, Blood, Chaos,
@@ -60,10 +62,12 @@ every unordered member pair, on daily **mid** prices:
 - **Reconvergence evidence**: scan the year's rolling z for past episodes (entry
   `|z| ≥ 2`, close `|z| ≤ 0.5`): episode count, fraction closed within 30 days, median
   days to close. Shown on every deal.
-- **Patch badge**: any update post from the existing Patch Impact store dated within
-  21 days of build time whose title contains a leg's name (word-boundary,
-  case-insensitive, regex-escaped) or whose wikitext hits it ≥ 2 times (the
-  `extractTags` convention) → `{ title, url, date }` attached to the deal.
+- **Patch badge**: any `category=game` update post dated within 21 days of build time
+  that **links** either leg (via the existing, tested
+  `extractLinkTargets`/`matchMentions` helpers from `updateParse.ts` — editors link
+  items religiously, the Patch Impact convention) → `{ title, url, date }` attached to
+  the deal. Update pages come from the shared disk cache (`listUpdatePages` +
+  `getUpdatePages`), so this is cheap after the first Patch Impact build.
 - **Aggregation → deals**: group flagged pairs by laggard item; a deal = item +
   `laggingPairs`/`eligiblePairs` counts + its flagged pairs (worst |z| first) + headline (item's 30d %
   change vs peers' median 30d change — peers = its eligible partners) + current buy/sell
@@ -105,7 +109,7 @@ interface PairSignal {
 }
 interface DivergenceGroup {
   id: string; label: string; eligiblePairs: number;
-  members: { itemId: number; name: string; icon: string | null;
+  members: { itemId: number | null; name: string; icon: string | null;
              eligible: boolean; avgR: number | null; missing: boolean }[];
 }
 ```
@@ -147,8 +151,8 @@ without badges (badge is additive). No deals is a normal, designed-for state.
 - **shared**: `pearson` fixtures (hand-computed, incl. constant-series → null/0 guard).
 - **server** (`divergence.test.ts`, synthetic series): correlated pair + injected
   divergence → flagged, correct laggard side, episode stats; low-r pair never signals;
-  volume floor enforced; direction sanity check; patch-badge matching (title
-  word-boundary, body ≥2 hits, regex escaping, 21-day window); aggregation and ranking.
+  volume floor enforced; direction sanity check; patch-badge matching (linked-item
+  mentions, `category=game` filter, 21-day window); aggregation and ranking.
 - **e2e** (mocked `/api/divergence`, precedent: patches spec): page renders deals +
   groups panel, premium gate blocks free tier, card expands to chart. Desktop + mobile.
 
