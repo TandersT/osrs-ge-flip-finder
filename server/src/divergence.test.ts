@@ -239,6 +239,25 @@ describe('computeDivergence', () => {
     expect(member.itemId).toBeNull();
   });
 
+  it('marks a resolved member missing (with its real itemId) when only its series is absent', () => {
+    // gamma resolves via `items`, but seriesById has no entry for its id: distinct
+    // from the unresolved-name case above, which reports itemId: null.
+    const { deals, groups } = computeDivergence(
+      CATS,
+      [alpha, beta, gamma],
+      new Map([
+        [1, mkSeries(365, wave)],
+        [2, mkSeries(365, (i) => (wave(i) * 0.6 + 400) * wobble(i / 2 + 3))],
+        // no entry for id 3
+      ]),
+      flipCfg,
+    );
+    expect(deals).toHaveLength(0); // alpha/beta pair tracks fine
+    const member = groups[0]!.members.find((m) => m.name === 'Gamma fish')!;
+    expect(member.missing).toBe(true);
+    expect(member.itemId).toBe(3);
+  });
+
   it('flags the quiet item when a peer soars (the shark-vs-turtle case)', () => {
     const soar = new Map([
       [1, mkSeries(365, (i) => wave(i) * wobble(i))],
@@ -248,5 +267,41 @@ describe('computeDivergence', () => {
     const { deals } = computeDivergence(CATS, [alpha, beta, gamma], soar, flipCfg);
     // gamma soared: the deal (if the gate passes) must be a QUIET item, never gamma
     for (const d of deals) expect(d.itemId).not.toBe(3);
+  });
+
+  it('direction gate: a flagged laggard whose 30d change beats its peers median is not listed', () => {
+    // Alpha (L) is quiet; Beta (P1) soars late so the L-P1 spread genuinely
+    // flags L as the cheap leg. But Gamma (P2) crashes even harder, so the
+    // median 30d change across L's peers (P1 way up, P2 way down) lands
+    // below L's own ~flat 30d change — the direction-sanity gate must block L.
+    const seriesL = mkSeries(365, (i) => wave(i) * wobble(i));
+    const seriesP1 = mkSeries(365, (i) =>
+      (wave(i) * 0.6 + 400) * wobble(i / 2 + 3) * (i >= 345 ? 1 + 0.012 * (i - 345) : 1),
+    );
+    const seriesP2 = mkSeries(365, (i) =>
+      (wave(i) * 0.8 + 200) * wobble(i / 3 + 1) * (i >= 340 ? 1 - 0.013 * (i - 340) : 1),
+    );
+
+    // Prove the L-P1 pair genuinely flags, with L (alpha) as the cheap leg.
+    const pairLP1 = computePair(dailyMids(seriesL), dailyMids(seriesP1));
+    expect(pairLP1.eligible).toBe(true);
+    expect(pairLP1.z!).toBeLessThanOrEqual(-2);
+
+    const { deals } = computeDivergence(
+      CATS,
+      [alpha, beta, gamma],
+      new Map([
+        [1, seriesL],
+        [2, seriesP1],
+        [3, seriesP2],
+      ]),
+      flipCfg,
+    );
+
+    // The gate blocks alpha even though it was flagged as a cheap leg vs beta.
+    expect(deals.some((d) => d.itemId === 1)).toBe(false);
+    // Sanity guard so this can't pass vacuously: gamma crashed harder than
+    // both peers, so it genuinely lags and must list.
+    expect(deals.length).toBeGreaterThan(0);
   });
 });
