@@ -2,12 +2,15 @@ import type {
   DivergenceDeal,
   DivergenceGroup,
   DivergenceGroupMember,
+  DivergenceResponse,
   ItemCategory,
   ItemSnapshot,
   PairSignal,
   TimeseriesPoint,
 } from '@osrs-flip/shared';
-import { computeFlip, mean, median, pctChange, pearson, zScore } from '@osrs-flip/shared';
+import { computeFlip, ITEM_CATEGORIES, mean, median, pctChange, pearson, zScore } from '@osrs-flip/shared';
+import { config } from './config.js';
+import { getItems } from './items.js';
 import {
   extractLinkTargets,
   matchMentions,
@@ -15,6 +18,7 @@ import {
   wikiPageUrl,
 } from './updateParse.js';
 import { getUpdatePages, listUpdatePages, type StoredUpdatePage } from './updates.js';
+import { getTimeseries } from './wiki.js';
 
 /**
  * Divergence engine — pairwise correlation-gated spreads inside curated item
@@ -388,4 +392,89 @@ export async function fetchRecentUpdates(nameToId: Map<string, number>): Promise
   const refs = await listUpdatePages();
   const pages = await getUpdatePages(refs);
   return parseRecentUpdates(pages, nameToId, sinceIso);
+}
+
+interface BuildState {
+  builtAt: number;
+  deals: DivergenceDeal[];
+  groups: DivergenceGroup[];
+  coverage: { itemsRequested: number; itemsWithSeries: number };
+}
+
+let state: BuildState | null = null;
+let building: { total: number; done: number } | null = null;
+let buildPromise: Promise<void> | null = null;
+
+async function build(): Promise<void> {
+  const { items } = await getItems();
+  const byName = new Map(items.map((i) => [i.name.toLowerCase(), i]));
+  const wanted = [
+    ...new Map(
+      ITEM_CATEGORIES.flatMap((c) => c.members)
+        .map((name) => byName.get(name.toLowerCase()))
+        .filter((i): i is NonNullable<typeof i> => i !== undefined)
+        .map((i) => [i.id, i] as const),
+    ).values(),
+  ];
+
+  building = { total: wanted.length, done: 0 };
+  const seriesById = new Map<number, TimeseriesPoint[]>();
+  let next = 0;
+
+  async function worker(): Promise<void> {
+    while (next < wanted.length) {
+      const item = wanted[next++]!;
+      try {
+        const series = await getTimeseries(item.id, '24h');
+        seriesById.set(item.id, series.value);
+      } catch {
+        // wiki hiccup on one item: its group members show as missing this build
+      }
+      building!.done++;
+      await new Promise((r) => setTimeout(r, BUILD_DELAY_MS));
+    }
+  }
+  await Promise.all(Array.from({ length: BUILD_CONCURRENCY }, worker));
+
+  const computed = computeDivergence(ITEM_CATEGORIES, items, seriesById, {
+    captureRate: config.captureRate,
+    offerOffset: config.offerOffset,
+  });
+  const { groups } = computed;
+  let deals = computed.deals;
+  try {
+    const nameToId = new Map(items.map((i) => [i.name.toLowerCase(), i.id]));
+    deals = attachPatchBadges(deals, await fetchRecentUpdates(nameToId));
+  } catch {
+    // badges are additive — a MediaWiki hiccup must not kill the build
+  }
+
+  state = {
+    builtAt: Date.now(),
+    deals,
+    groups,
+    coverage: { itemsRequested: wanted.length, itemsWithSeries: seriesById.size },
+  };
+  building = null;
+}
+
+/** Lazily (re)build in the background; serve whatever exists right now. */
+export function getDivergence(): DivergenceResponse {
+  const isFresh = state !== null && Date.now() - state.builtAt < REBUILD_MS;
+  if (!isFresh && buildPromise === null) {
+    buildPromise = build()
+      .catch(() => {
+        // total failure (e.g. wiki down with cold cache): retry on a later request
+      })
+      .finally(() => {
+        buildPromise = null;
+      });
+  }
+  return {
+    builtAt: state === null ? null : Math.floor(state.builtAt / 1000),
+    ...(building !== null ? { building } : {}),
+    deals: state?.deals ?? [],
+    groups: state?.groups ?? [],
+    coverage: state?.coverage ?? { itemsRequested: 0, itemsWithSeries: 0 },
+  };
 }

@@ -2,6 +2,7 @@ import type { FastifyInstance } from 'fastify';
 import type { AppConfig, DealsResponse, Timestep } from '@osrs-flip/shared';
 import { buildRows, computeMethodRows } from '@osrs-flip/shared';
 import { config } from './config.js';
+import { getDivergence } from './divergence.js';
 import { getItems } from './items.js';
 import { getLongterm } from './longterm.js';
 import { getPatchDetail, getPatches, getUpcoming } from './patches.js';
@@ -30,6 +31,8 @@ export function registerApiRoutes(app: FastifyInstance): void {
   });
 
   app.get('/api/longterm', async () => getLongterm());
+
+  app.get('/api/divergence', async () => getDivergence());
 
   // Patch Impact (premium page; enforcement is client-side until payments exist)
   app.get('/api/patches', async () => getPatches());
