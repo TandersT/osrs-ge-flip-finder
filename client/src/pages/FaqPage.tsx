@@ -324,6 +324,41 @@ export default function FaqPage() {
           </p>
         </Q>
       </Section>
+
+      <Section title="Divergence">
+        <Q id="divergence" q="What is the Divergence page?">
+          <p>
+            Items of the same kind (high-heal food, logs, runes, hides…) usually move together in
+            price. Divergence screens curated categories daily and flags an item trading unusually
+            cheap against peers it <em>historically tracks</em> — the deal is buying the laggard
+            and waiting for the gap to close. Premium feature; rebuilds twice a day from daily
+            price history.
+          </p>
+        </Q>
+        <Q q="How do I read a divergence deal?">
+          <p>
+            The headline compares 30-day moves: "peers +12% · this −3%". "Lags 3 of 4 co-moving
+            peers" means 3 of the 4 pairs that historically track this item are stretched beyond
+            2 standard deviations. "Closed 4 of 5 within 30d" is that pair's actual reconvergence
+            record over the past year — evidence, not a promise. A <em>patched</em> badge means a
+            recent game update mentions the item or its peer: those divergences are often
+            justified and may never close.
+          </p>
+          <p>
+            One honest caveat: a spread can close from either side — the laggard rising <em>or</em>
+            the leader falling back. An item lagging several peers at once is the stronger signal.
+          </p>
+        </Q>
+        <Q q="Why is an item or category missing from Divergence?">
+          <p>
+            Pairs must prove co-movement before they may signal: at least 6 months of overlapping
+            history and a weekly-return correlation of 0.4+, with both items trading 2,000+ units a
+            day. Members failing those gates show a grey dot in the "Watched categories" panel — a
+            red dot means we couldn't get its price data at all. Categories are a curated list, so
+            some items simply aren't watched yet.
+          </p>
+        </Q>
+      </Section>
     </div>
   );
 }

@@ -67,7 +67,7 @@ See `DECISIONS.md` ("Repo conventions") for the history of how it got there.
 
 Free covers the whole flipping loop (finder, filters, risk flags, charts, starter guide).
 Premium removes scale limits (watchlist, flip log + CSV) and unlocks the full long-term
-screener, full-year history and the Patch Impact page. Entitlements live in
+screener, full-year history, the Patch Impact page and the Divergence screener. Entitlements live in
 `shared/src/tiers.ts` as data; payments are not integrated yet — see
 [docs/payments-plan.md](docs/payments-plan.md) for the Stripe follow-up plan. Until then
 `/premium` accepts the dev unlock code.
@@ -87,6 +87,13 @@ screener, full-year history and the Patch Impact page. Entitlements live in
   from the wiki (`scripts/generate-item-sets.mjs`), methods are curated data.
 - The long-term screener fetches 24h timeseries for the ~250 most liquid items with a
   throttled worker pool and caches the screen for 12h (see `DECISIONS.md`).
+- **Divergence (`/divergence`, premium)** screens ~15 curated item categories (shared data,
+  `shared/src/categories.ts`) for pairwise mismatches: pairs must prove co-movement (weekly
+  log-return correlation ≥ 0.4 over 180 overlapping days, both legs ≥ 2k daily volume) before
+  a z-scored log-price spread (|z| ≥ 2 vs its trailing 90d) may flag the cheap leg as a
+  laggard deal. Deals carry the pair's past reconvergence record and a ⚠ badge when a recent
+  game update links either leg (reusing the Patch Impact update store). Same 12h lazy build
+  pattern as the long-term screener (`server/src/divergence.ts`).
 - **Patch Impact (`/patches`, premium)** adds two more server-side upstreams, same rule as
   the prices API (browser never calls them): the weirdgloop exchange archive (multi-year
   daily prices, volumes from Sept 2018) and the wiki's MediaWiki API (update posts + the

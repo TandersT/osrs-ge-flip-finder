@@ -480,3 +480,26 @@ multi-year, fully premium, category-analogue evidence). Notable calls:
   (illiquid-but-notable PvM items like Tumeken's shadow are exactly what a "watch before a
   patch" list wants, unlike the liquid-flipping screener). See the final-review roll-up in
   `.superpowers/sdd/progress.md`.
+
+## Divergence — category-mismatch laggard deals (2026-07-17)
+
+- Spec: `docs/superpowers/specs/2026-07-16-category-divergence-design.md` (brainstormed
+  choices: days-to-weeks horizon, buy-the-laggard only, curated categories, pairwise engine,
+  patch badge in v1, fully premium, named "Divergence").
+- Categories are curated DATA (`shared/src/categories.ts`, exact GE names like methods.ts) —
+  semantic grouping is only a candidate prior; every pair must additionally pass the
+  correlation gate before it may signal. Unresolved names surface as red dots in the groups
+  panel, never silently.
+- Engine thresholds (all named consts in `server/src/divergence.ts`): 180d overlap,
+  weekly-log-return Pearson r ≥ 0.4, 2k/day volume floor both legs, entry |z| ≥ 2 vs
+  trailing 90d, episode close |z| ≤ 0.5, reconvergence horizon 30d. Weekly (not daily)
+  returns for the gate: smooths bucket noise without rewarding shared long drift.
+- The currently-open episode is excluded from a pair's reconvergence record — it IS the
+  signal being sold, counting it would inflate the history.
+- Deals aggregate by laggard item (lagging several peers ≫ one stray pair) and are listed
+  only when the item's 30d change trails its peers' median (direction sanity check).
+- Patch badge reuses the Patch Impact machinery (`listUpdatePages`/`getUpdatePages` disk
+  cache + `extractLinkTargets`/`matchMentions`) rather than fresh name-regex matching;
+  `wikiPageUrl` moved to `updateParse.ts` for reuse. Badge failures never kill a build.
+- e2e mocks `/api/divergence` (live build takes ~1–2 min cold); the live pipeline is
+  verified by hand in the plan's task 6/12 smoke steps.
