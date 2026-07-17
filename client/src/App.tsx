@@ -11,6 +11,7 @@ import PremiumPage from './pages/PremiumPage';
 import ToolsPage from './pages/ToolsPage';
 import DealsPage from './pages/DealsPage';
 import PatchesPage from './pages/PatchesPage';
+import DivergencePage from './pages/DivergencePage';
 import { AlertWatcher } from './components/AlertWatcher';
 import { Icon } from './components/Icon';
 
@@ -48,6 +49,7 @@ export default function App() {
           <Tab to="/starter" label="Get Started" />
           <Tab to="/longterm" label="Long-term" />
           <Tab to="/patches" label="Patches" />
+          <Tab to="/divergence" label="Divergence" />
           <Tab to="/tools" label="Tools" />
           <Tab to="/watchlist" label="Watchlist" />
           <Tab to="/log" label="Flip Log" />
@@ -67,6 +69,7 @@ export default function App() {
           <Route path="/item/:id" element={<ItemDetailPage />} />
           <Route path="/longterm" element={<LongTermPage />} />
           <Route path="/patches" element={<PatchesPage />} />
+          <Route path="/divergence" element={<DivergencePage />} />
           <Route path="/tools" element={<ToolsPage />} />
           <Route path="/watchlist" element={<WatchlistPage />} />
           <Route path="/log" element={<FlipLogPage />} />
