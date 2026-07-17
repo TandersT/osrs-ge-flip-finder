@@ -36,4 +36,9 @@ describe('entitlements', () => {
     expect(getEntitlements('free').patchAnalysis).toBe(false);
     expect(getEntitlements('premium').patchAnalysis).toBe(true);
   });
+
+  it('gates the divergence screener to premium only', () => {
+    expect(getEntitlements('free').divergence).toBe(false);
+    expect(getEntitlements('premium').divergence).toBe(true);
+  });
 });

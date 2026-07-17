@@ -43,6 +43,8 @@ export interface Entitlements {
   savedFiltersMax: number | null;
   /** Patch Impact: patch winners/losers + upcoming watchlist (/patches). */
   patchAnalysis: boolean;
+  /** Divergence: category-mismatch laggard deals (/divergence). */
+  divergence: boolean;
 }
 
 export const ENTITLEMENTS: Record<Tier, Entitlements> = {
@@ -64,6 +66,7 @@ export const ENTITLEMENTS: Record<Tier, Entitlements> = {
     logAnalytics: false,
     savedFiltersMax: 1,
     patchAnalysis: false,
+    divergence: false,
   },
   premium: {
     watchlistMax: null,
@@ -83,6 +86,7 @@ export const ENTITLEMENTS: Record<Tier, Entitlements> = {
     logAnalytics: true,
     savedFiltersMax: null,
     patchAnalysis: true,
+    divergence: true,
   },
 };
 

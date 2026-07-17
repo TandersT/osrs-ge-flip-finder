@@ -42,6 +42,7 @@ const FEATURES: { label: string; free: string; premium: string }[] = [
     free: `${ENTITLEMENTS.free.savedFiltersMax}`,
     premium: 'Unlimited',
   },
+  { label: 'Divergence screener (category-mismatch deals)', free: '—', premium: '✓' },
 ];
 
 export default function PremiumPage() {
